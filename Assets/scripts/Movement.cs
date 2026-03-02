@@ -24,12 +24,9 @@ public class Movement : MonoBehaviour
     private void Move()
     {
 
-        Vector3 positionUpdate = transform.position - Input.GetAxis("Vertical") * transform.forward * _speed * Time.deltaTime;
-        transform.position = positionUpdate;
-        Vector3 positionUpdate2 = transform.position - Input.GetAxis("Horizontal") * transform.right * _speed * Time.deltaTime;
-        transform.position = positionUpdate2;
+        transform.position -= (Input.GetAxis("Vertical") * transform.forward + Input.GetAxis("Horizontal") * transform.right) * _speed * Time.deltaTime;
 
-       
+
 
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
