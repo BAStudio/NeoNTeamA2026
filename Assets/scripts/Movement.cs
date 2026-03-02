@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -5,8 +6,11 @@ public class Movement : MonoBehaviour
 {
     private float _speed = 30f;
     private Rigidbody rb;
+    private bool _isRunning = false;
+    private float _runSpeed = 50f;
+    private float _walkSpeed = 30f;
 
-    private float _velocity;
+   
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -18,23 +22,17 @@ public class Movement : MonoBehaviour
     void Update()
     {
         Move();
-   
+        
     }
 
     private void Move()
     {
-
+        //laat het character bewegen naar voor achter links en recht
         transform.position -= (Input.GetAxis("Vertical") * transform.forward + Input.GetAxis("Horizontal") * transform.right) * _speed * Time.deltaTime;
 
-
-
-        if (Input.GetKeyDown(KeyCode.LeftShift))
-        {
-            _velocity = 50f;
-        }
-        else 
-        {
-            _velocity = 30f;
-        }
+        //zorgt ervoor als je left shift in klikt dat je sneller gaat (sprinten)
+        _isRunning = Input.GetKey(KeyCode.LeftShift);
+        _speed = _isRunning ? _runSpeed : _walkSpeed;
+        
     }
 }
