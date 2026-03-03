@@ -22,8 +22,6 @@ public class UIInteraction : MonoBehaviour
 
     private bool _keyHeld;
 
-    
-
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -79,8 +77,6 @@ public class UIInteraction : MonoBehaviour
 
             _fadeOutTimer = 0f;
         }
-
-
     }
 
     private void PressingKey()
@@ -89,7 +85,7 @@ public class UIInteraction : MonoBehaviour
 
         _InteractionFunction.Invoke();
 
-        Debug.Log("Successfully excecuted pressing action with input:" + _key);
+        Debug.Log("Successfully excecuted pressing action with input: " + _key);
     }
 
     private void HoldingKey()
@@ -98,7 +94,7 @@ public class UIInteraction : MonoBehaviour
 
         _InteractionFunction.Invoke();
 
-        Debug.Log("Successfully excecuted holding action with input:" + _key);
+        Debug.Log("Successfully excecuted holding action with input: " + _key);
     }
 
     public void SetFadeOutTimer(float fadeOutTime)

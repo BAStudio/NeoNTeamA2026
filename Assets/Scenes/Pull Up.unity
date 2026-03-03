@@ -376,7 +376,6 @@ GameObject:
   - component: {fileID: 731019365}
   - component: {fileID: 731019368}
   - component: {fileID: 731019369}
-  - component: {fileID: 731019370}
   m_Layer: 0
   m_Name: Player (Camera)
   m_TagString: MainCamera
@@ -516,18 +515,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCamera
   mouseSensitivity: 100
   verticalLookLimit: 90
---- !u!114 &731019370
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 731019364}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f4ed67c856600e4386fcf6fb340a1e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIRaycast
 --- !u!1 &909351496
 GameObject:
   m_ObjectHideFlags: 0
@@ -1346,7 +1333,7 @@ MonoBehaviour:
   _UIFaderScript: {fileID: 1668493835}
   _colliderIsTrigger: 0
   _colliderTagName: Pull Up Bar
-  _rayCastDistance: 5
+  _raycastDistance: 5
   _fadeOutTime: 0.5
 --- !u!1 &1921601260
 GameObject:

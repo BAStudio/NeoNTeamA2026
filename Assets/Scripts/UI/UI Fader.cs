@@ -5,11 +5,29 @@ public class UIFader : MonoBehaviour
 {
     [SerializeField] private float _fadeDuration = 1f;
 
+    private bool _shouldFadeIn = false;
+
+    private bool _shouldFadeOut = false;
+
+    float time = 0;
+
     private CanvasGroup canvasGroup;
     
     private void Start()
     {
         canvasGroup.alpha = 0f;
+    }
+
+    private void Update()
+    {
+        if(_shouldFadeIn)
+        {
+            FadeIn();
+        }
+        else if (_shouldFadeOut)
+        {
+            FadeOut();
+        }
     }
 
     void Awake()
@@ -19,35 +37,37 @@ public class UIFader : MonoBehaviour
 
     private void FadeIn()
     {
-        StartCoroutine(Fade(0f, 1f, _fadeDuration));
+        Fade(1f, 0f, _fadeDuration);
     }
 
     private void FadeOut()
     {
-        StartCoroutine(Fade(1f, 0f, _fadeDuration));
+        Fade(0f, 1f, _fadeDuration);
     }
     public void GetFadeIn()
     {
-        FadeIn();
+        _shouldFadeIn = true;
     }
 
     public void GetFadeOut()
     {
-        FadeOut();
+        _shouldFadeOut = true;
     }
 
-    IEnumerator Fade(float start, float end, float duration)
+    private void Fade(float start, float end, float duration)
     {
-        float time = 0;
-
-        while (time < duration)
+        if(time < duration)
         {
             canvasGroup.alpha = Mathf.Lerp(start, end, time / duration);
             time += Time.deltaTime;
-            yield return null;
         }
-
-        canvasGroup.alpha = end;
+        if (time >= duration)
+        {
+            time = 0;
+            _shouldFadeIn = false;
+            _shouldFadeOut = false;
+            canvasGroup.alpha = end;
+        }
     }
 }
 

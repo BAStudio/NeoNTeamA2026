@@ -8,9 +8,11 @@ public class UITrigger : MonoBehaviour
 
     [SerializeField] private string _colliderTagName;
 
-    [SerializeField] private float _rayCastDistance;
+    [SerializeField] private float _raycastDistance;
 
     [SerializeField] private float _fadeOutTime;
+
+    private float _raycastTimer;
 
     public static event System.Action PlayerUITriggerEnter;
     public static event System.Action PlayerUITriggerExit;
@@ -26,13 +28,11 @@ public class UITrigger : MonoBehaviour
     {
         RaycastHit hit;
 
-        if (Physics.Raycast(transform.position, Camera.main.transform.forward, out hit, _rayCastDistance) && !_colliderIsTrigger)
+        if (Physics.Raycast(transform.position, Camera.main.transform.forward, out hit, _raycastDistance) && !_colliderIsTrigger)
         {
             if(hit.collider.CompareTag(_colliderTagName))
             {
                 PlayerUITriggerEnter?.Invoke();
-
-                _UIFaderScript.GetFadeIn();
 
                 hit.transform.gameObject.GetComponent<UIInteraction>().SetFadeOutTimer(_fadeOutTime);
 
@@ -40,6 +40,7 @@ public class UITrigger : MonoBehaviour
             }
         }
     }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag(_colliderTagName) && _colliderIsTrigger)
