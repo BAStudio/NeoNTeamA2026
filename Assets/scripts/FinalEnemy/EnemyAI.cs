@@ -75,6 +75,11 @@ public class HorrorEnemyAI : MonoBehaviour
         allNodes.AddRange(masterGrid.GetAllNodes());
         lastPlayerPosition = player != null ? player.position : Vector3.zero;
         PickRandomPatrol();
+
+        GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
+        if (playerObj != null)
+            player = playerObj.transform;
+
     }
 
     private void Update()
