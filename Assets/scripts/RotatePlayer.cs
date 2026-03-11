@@ -4,19 +4,22 @@ using UnityEngine;
 
 public class RotatePlayer : MonoBehaviour
 {
-    public float mouseSensitivity = 100f; // Sensitivity of the mouse
-
+    Vector3 CameraRotation;
+    public Vector3 CameraDirection;
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked; // Locks the cursor to the center
     }
 
     void Update()
     {
-        // Get horizontal mouse movement
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+       
+    }
 
-        // Rotate the entire player left and right
-        transform.Rotate(Vector3.up * mouseX);
+    public void RotatePlayerToCamera(Transform cameraTransform)
+    {
+     GetComponentInChildren<Camera>().transform.rotation = cameraTransform.rotation;
+        CameraRotation = GetComponentInChildren<Camera>().transform.rotation.eulerAngles;
+        CameraDirection = cameraTransform.forward;
+
     }
 }
