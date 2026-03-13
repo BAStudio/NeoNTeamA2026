@@ -25,7 +25,7 @@ public class WallClimbing : MonoBehaviour
 
     private void DetectWall()
     {
-        bool pressing = Input.GetKey(KeyCode.R) || Input.GetKey(KeyCode.F);
+        bool pressing = Input.GetKey(KeyCode.Space);
 
         Vector3 origin = transform.position + Vector3.down * rayCastPosition;
         if (Physics.Raycast(origin, transform.forward, out RaycastHit hit, detectDistance, climbLayer))
@@ -53,8 +53,8 @@ public class WallClimbing : MonoBehaviour
     private void ClimbMovement()
     {
         float y = 0f;
-        if (Input.GetKey(KeyCode.R)) y = climbSpeed;
-        if (Input.GetKey(KeyCode.F)) y = -climbSpeed;
+        if (Input.GetKey(KeyCode.Space)) y = climbSpeed;
+        else y = -climbSpeed;
         rb.linearVelocity = new Vector3(0, y, 0);
     }
 
