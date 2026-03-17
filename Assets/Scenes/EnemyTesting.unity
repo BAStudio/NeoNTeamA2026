@@ -4550,7 +4550,7 @@ MonoBehaviour:
   nodeSize: 1
   wallLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   showNodes: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!4 &2061957585
@@ -4766,8 +4766,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6866554228542006716}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.46, y: -0.12, z: 2.59}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 20.46, y: -0.12, z: 2.5900002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4855,6 +4855,7 @@ GameObject:
   - component: {fileID: 8813006828771327823}
   - component: {fileID: 8813006828771327826}
   - component: {fileID: 8813006828771327825}
+  - component: {fileID: 8813006828771327827}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -4877,7 +4878,7 @@ MonoBehaviour:
   damageAmount: 0
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
   rayLength: 1.5
   minimumFallTime: 0.5
 --- !u!114 &8813006828771327824
@@ -4943,6 +4944,32 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &8813006828771327827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6866554228542006716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af0e6c64e6a170f41b4fe5c05927fd90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSignalScanner
+  maxRadius: 15
+  minRadius: 2
+  expansionSpeed: 20
+  baseStrength: 1
+  velocityThreshold: 2
+  maxSpeedForFullSignal: 5
+  velocitySmoothing: 0.5
+  radiusSpeedInfluence: 0.3
+  rayCount: 128
+  detectionLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  drawDebugRays: 1
+  drawGizmos: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
