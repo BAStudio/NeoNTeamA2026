@@ -1,19 +1,18 @@
 ﻿using UnityEngine;
-using UnityEngine.Timeline;
 
 public class PlayerSignalScanner : MonoBehaviour
 {
     [Header("Signal Emission")]
-    [SerializeField] private float maxRadius = 12f;         
-    [SerializeField] private float minRadius = 4f;          
+    [SerializeField] private float maxRadius = 12f;
+    [SerializeField] private float minRadius = 4f;
     [SerializeField] private float expansionSpeed = 20f;
     [SerializeField] private float baseStrength = 1f;
 
     [Header("Velocity")]
-    [SerializeField] private float velocityThreshold = 2f;       
-    [SerializeField] private float maxSpeedForFullSignal = 5f;   
+    [SerializeField] private float velocityThreshold = 2f;
+    [SerializeField] private float maxSpeedForFullSignal = 5f;
     [SerializeField] private float velocitySmoothing = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float radiusSpeedInfluence = 0.3f; 
+    [SerializeField, Range(0f, 1f)] private float radiusSpeedInfluence = 0.3f;
 
     [Header("Raycast Settings")]
     [SerializeField, Range(8, 128)] private int rayCount = 48;
@@ -23,11 +22,9 @@ public class PlayerSignalScanner : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool drawGizmos = true;
 
-    // velocity tracking
     private Vector3 lastFramePosition;
     private Vector3 smoothedVelocity;
 
-    // single wave
     private bool isEmitting;
     private float currentRadius;
     private float waveStrength;
@@ -91,7 +88,7 @@ public class PlayerSignalScanner : MonoBehaviour
         waveStrength = baseStrength * strengthMultiplier;
 
         float normalizedSpeed = Mathf.Clamp01(speed / maxSpeedForFullSignal);
-        float adjustedMultiplier = Mathf.Pow(normalizedSpeed, 2f); 
+        float adjustedMultiplier = Mathf.Pow(normalizedSpeed, 2f);
         waveMaxRadius = minRadius + (maxRadius - minRadius) * adjustedMultiplier;
 
         waveOrigin = transform.position;
@@ -101,7 +98,10 @@ public class PlayerSignalScanner : MonoBehaviour
 
     private void CastWaveRing(float innerRadius, float outerRadius)
     {
-        float angleStep = 360f / rayCount;
+        // Avoid zero radius problems
+        innerRadius = Mathf.Max(0f, innerRadius);
+
+        float angleStep = 360f / Mathf.Max(1, rayCount);
 
         for (int i = 0; i < rayCount; i++)
         {
@@ -114,13 +114,16 @@ public class PlayerSignalScanner : MonoBehaviour
 
                 if (dist >= innerRadius && dist <= outerRadius)
                 {
-                    float normalized = dist / waveMaxRadius;
-                    float strength = Mathf.Lerp(waveStrength, 0f, normalized);
+                    // normalized relative to max wave radius (0..1)
+                    float normalized = Mathf.Clamp01(dist / Mathf.Max(0.0001f, waveMaxRadius));
 
-                    OnSignalHit(hit, waveOrigin, strength);
+                    // smoother falloff (you can tweak this)
+                    float strength = waveStrength * (1f - normalized * normalized);
+
+                    OnSignalHit(hit, waveOrigin, Mathf.Clamp01(strength));
 
                     if (drawDebugRays)
-                        Debug.DrawRay(waveOrigin, dir * dist, Color.cyan, 0.1f);
+                        Debug.DrawRay(waveOrigin, dir * dist, Color.cyan, 0.08f);
                 }
             }
             else if (drawDebugRays)
@@ -132,13 +135,18 @@ public class PlayerSignalScanner : MonoBehaviour
 
     private void OnSignalHit(RaycastHit hit, Vector3 source, float strength)
     {
-        /*
-        var receiver = hit.collider.GetComponent<ISignalReceiver>();
+        ISignalReceiver receiver = null;
+
+        receiver = hit.collider.GetComponent<ISignalReceiver>();
+        if (receiver == null)
+            receiver = hit.collider.GetComponentInParent<ISignalReceiver>();
+        if (receiver == null)
+            receiver = hit.collider.GetComponentInChildren<ISignalReceiver>();
+
         if (receiver != null)
         {
             receiver.OnSignalReceived(source, strength);
         }
-        */
     }
     #endregion
 
