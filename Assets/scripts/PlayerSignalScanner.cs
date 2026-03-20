@@ -12,7 +12,6 @@ public class PlayerSignalScanner : MonoBehaviour
     [SerializeField] private float velocityThreshold = 2f;
     [SerializeField] private float maxSpeedForFullSignal = 5f;
     [SerializeField] private float velocitySmoothing = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float radiusSpeedInfluence = 0.3f;
 
     [Header("Raycast Settings")]
     [SerializeField, Range(8, 128)] private int rayCount = 48;
