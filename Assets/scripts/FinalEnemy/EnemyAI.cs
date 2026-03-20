@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class HorrorEnemyAI : MonoBehaviour
+public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 {
     private enum AIState { Patrol, Alert, Search, Chase }
 
@@ -38,11 +38,16 @@ public class HorrorEnemyAI : MonoBehaviour
     [Header("Search")]
     [SerializeField] private float searchDuration = 6f;
     [SerializeField] private float searchRadius = 4f;
-    [SerializeField] private float lookAroundDuration = 10f; 
+    [SerializeField] private float lookAroundDuration = 10f;
 
     [Header("Pathfinding")]
     [SerializeField] private float pathRefreshRate = 0.3f;
     [SerializeField] private float nodeReachThreshold = 0.2f;
+
+    [Header("Signal Detection")]
+    [SerializeField] private float signalDetectionMultiplier = 40f; // detection points per unit strength
+    [SerializeField] private float signalMemoryTime = 2f; // how long AI 'remembers' a signal
+    [SerializeField] private float signalReceiveCooldown = 0.08f; // prevent spam stacking every rayframe
 
     [Header("Debug")]
     [SerializeField] private bool verboseLogs = false;
@@ -63,6 +68,10 @@ public class HorrorEnemyAI : MonoBehaviour
     private Vector3 lastPlayerPosition;
     private Vector3 lastPlayerVelocity;
 
+    // signal internals
+    private float signalTimer;
+    private float signalCooldownTimer;
+
     private void Start()
     {
         if (masterGrid == null)
@@ -79,12 +88,24 @@ public class HorrorEnemyAI : MonoBehaviour
         GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
         if (playerObj != null)
             player = playerObj.transform;
-
     }
 
     private void Update()
     {
         if (player == null) return;
+
+        // timers
+        if (signalCooldownTimer > 0f) signalCooldownTimer -= Time.deltaTime;
+        if (signalTimer > 0f)
+        {
+            signalTimer -= Time.deltaTime;
+            // if AI was patrolling, bias to investigate the signal briefly
+            if (currentState == AIState.Patrol)
+            {
+                currentState = AIState.Alert;
+                GeneratePath(lastSeenPosition);
+            }
+        }
 
         int rayHits = CastVisionRaysAndCountHits();
         bool seesPlayer = CheckVision();
@@ -97,7 +118,13 @@ public class HorrorEnemyAI : MonoBehaviour
         }
 
         UpdateDetectionMeter(seesPlayer);
-        UpdateStateBasedOnDetection();
+
+        // While reacting to a recent signal, avoid overriding the signal-driven state
+        // with the detection-based state machine, to prevent Patrol/Alert oscillation.
+        if (signalTimer <= 0f)
+        {
+            UpdateStateBasedOnDetection();
+        }
 
         // Behaviors
         switch (currentState)
@@ -420,6 +447,35 @@ public class HorrorEnemyAI : MonoBehaviour
             angleInDegrees += transform.eulerAngles.y;
         float rad = angleInDegrees * Mathf.Deg2Rad;
         return new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad));
+    }
+    #endregion
+
+    #region Signal Receiver
+    /// <summary>
+    /// Implements ISignalReceiver. Called by wave emitter.
+    /// strength is expected to be in 0..1
+    /// </summary>
+    public void OnSignalReceived(Vector3 source, float strength)
+    {
+        if (signalCooldownTimer > 0f) return;
+        signalCooldownTimer = signalReceiveCooldown;
+
+        float addedDetection = strength * signalDetectionMultiplier;
+        detectionMeter = Mathf.Clamp(detectionMeter + addedDetection, 0f, maxDetection);
+
+        lastSeenPosition = source;
+        signalTimer = signalMemoryTime;
+
+        // If strong signal, escalate state
+        if (detectionMeter >= maxDetection * 0.8f)
+            currentState = AIState.Chase;
+        else
+            currentState = AIState.Alert;
+
+        GeneratePath(lastSeenPosition);
+
+        if (verboseLogs)
+            Debug.Log($"[AI] Signal received | Strength: {strength:F2} | Added: {addedDetection:F1} | New detection: {detectionMeter:F1}");
     }
     #endregion
 

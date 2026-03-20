@@ -14,10 +14,11 @@ TagManager:
   - Water
   - UI
   - Ground
+  - Wall
   - 
   - 
   - cimb
-  - 
+  - Enemy
   - 
   - 
   - 
