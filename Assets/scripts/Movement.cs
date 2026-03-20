@@ -7,10 +7,12 @@ public class Movement : MonoBehaviour
     private float _speed = 30f;
     private Rigidbody rb;
     private bool _isRunning = false;
-    [SerializeField] private float _runSpeed = 5f;
-    [SerializeField] private float _walkSpeed = 2.5f;
+    private float _runSpeed = 50f;
+    private float _walkSpeed = 30f;
 
-   
+    private bool _allowedToMove = true;
+
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -21,8 +23,20 @@ public class Movement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Move();
-        
+        NotePad.StopMovement += StopMovement;
+
+        NotePad.ContinueMovement += ContinueMovement;
+
+        if(_allowedToMove)
+        {
+            Move();
+        }
+
+        if (!_allowedToMove)
+        {
+            return;
+        }
+
     }
 
     private void Move()
@@ -32,7 +46,16 @@ public class Movement : MonoBehaviour
 
         //zorgt ervoor als je left shift in klikt dat je sneller gaat (sprinten)
         _isRunning = Input.GetKey(KeyCode.LeftShift);
-        _speed = _isRunning ? _runSpeed : _walkSpeed;
-        
+        _speed = _isRunning ? _runSpeed : _walkSpeed;  
+    }
+
+    private void StopMovement()
+    {
+        _allowedToMove = false;
+    }
+
+    private void ContinueMovement()
+    {
+        _allowedToMove = true;
     }
 }
