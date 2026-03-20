@@ -118,7 +118,13 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         }
 
         UpdateDetectionMeter(seesPlayer);
-        UpdateStateBasedOnDetection();
+
+        // While reacting to a recent signal, avoid overriding the signal-driven state
+        // with the detection-based state machine, to prevent Patrol/Alert oscillation.
+        if (signalTimer <= 0f)
+        {
+            UpdateStateBasedOnDetection();
+        }
 
         // Behaviors
         switch (currentState)
