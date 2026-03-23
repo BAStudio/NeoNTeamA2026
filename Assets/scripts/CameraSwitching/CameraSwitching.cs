@@ -16,6 +16,11 @@ public class CameraSwitching : MonoBehaviour
 
     private int index = 0;
 
+    void Start()
+    {
+        CameraPoint cameraPoint = GetComponent<CameraPoint>();
+
+    }
     void Update()
     {
         float distance = Vector3.Distance(player.position, interactionPoint.position);
@@ -29,7 +34,7 @@ public class CameraSwitching : MonoBehaviour
 
             cam.transform.position = cameraPoints[index].GetCameraPointPosition();
             cam.transform.rotation = cameraPoints[index].GetCameraPointRotation();
-            
+
             index++;
 
             if (index >= cameraPoints.Length)
@@ -46,4 +51,5 @@ public class CameraSwitching : MonoBehaviour
             firstPersonCamera.enabled = true;
         }
     }
+
 }
