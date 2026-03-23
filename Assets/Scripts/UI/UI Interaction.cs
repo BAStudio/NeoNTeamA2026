@@ -4,27 +4,33 @@ using UnityEngine.Events;
 
 public class UIInteraction : MonoBehaviour
 {
-    [SerializeField] private UnityEvent _InteractionFunction;
-
-    [SerializeField] private UIFader _UIFaderScript;
+    [SerializeField] private UnityEvent InteractionFunction;
+    
+    //[SerializeField] private UIFader _UIFaderScript;
 
     [SerializeField] private bool _holdingKey;
 
     [SerializeField] private float _holdingTime;
 
     [SerializeField] private KeyCode _key;
-    
+
+    [SerializeField] private UIFader _uiFaderScript;
+
+    public static event System.Action InteractionUIFadeOut;
+
     private bool _playerUITriggerEnter;
 
     private float _holdingTimer = 0f;
     
-    private float _fadeOutTimer = 0f;
+    //private float _fadeOutTimer = 0f;
 
     private bool _keyHeld;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        //_UIFaderScript = GetComponent<UIFader>();
+
         _playerUITriggerEnter = false;
 
         _keyHeld = false;
@@ -34,9 +40,8 @@ public class UIInteraction : MonoBehaviour
     void Update()
     {
         UITrigger.PlayerUITriggerEnter += () => _playerUITriggerEnter = true;
-
         UITrigger.PlayerUITriggerExit += () => _playerUITriggerEnter = false;
-        
+
         if (Input.GetKeyDown(_key) && _playerUITriggerEnter && !_holdingKey)
         {
             PressingKey();
@@ -47,7 +52,7 @@ public class UIInteraction : MonoBehaviour
         if (Input.GetKey(_key) && _playerUITriggerEnter && _holdingKey)
         {
             _holdingTimer += Time.deltaTime;
-            
+
             //Debug.Log(_holdingTimer);
 
             if (_holdingTimer >= _holdingTime && !_keyHeld)
@@ -57,7 +62,7 @@ public class UIInteraction : MonoBehaviour
                 _keyHeld = true;
 
                 Debug.Log("Player is holding: " + _key);
-            } 
+            }
         }
         else
         {
@@ -65,40 +70,23 @@ public class UIInteraction : MonoBehaviour
 
             _keyHeld = false;
         }
-
-
-        if(_fadeOutTimer > 0)
-        {
-            _fadeOutTimer -= Time.deltaTime;
-        }
-        else
-        {
-            _UIFaderScript.GetFadeOut();
-
-            _fadeOutTimer = 0f;
-        }
     }
 
     private void PressingKey()
     {
-        _UIFaderScript.GetFadeOut();
+        InteractionFunction?.Invoke();
 
-        _InteractionFunction.Invoke();
+        _uiFaderScript.GetComponent<UIFader>()?.GetFadeOut();
 
-        Debug.Log("Successfully excecuted pressing action with input: " + _key);
+        Debug.Log("Successfully executed pressing action with input: " + _key);
     }
 
     private void HoldingKey()
     {
-        _UIFaderScript.GetFadeOut();
+        InteractionFunction?.Invoke();
 
-        _InteractionFunction.Invoke();
+        _uiFaderScript.GetComponent<UIFader>()?.GetFadeOut();
 
-        Debug.Log("Successfully excecuted holding action with input: " + _key);
-    }
-
-    public void SetFadeOutTimer(float fadeOutTime)
-    {
-        _fadeOutTimer = fadeOutTime;
+        Debug.Log("Successfully executed holding action with input: " + _key);
     }
 }

@@ -1,18 +1,15 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public class UITrigger : MonoBehaviour
 {
-    [SerializeField] private UIFader _UIFaderScript;
+    //[SerializeField] private UIFader _UIFaderScript;
 
     [SerializeField] private bool _colliderIsTrigger;
 
     [SerializeField] private string _colliderTagName;
 
     [SerializeField] private float _raycastDistance;
-
-    [SerializeField] private float _fadeOutTime;
-
-    private float _raycastTimer;
 
     public static event System.Action PlayerUITriggerEnter;
     public static event System.Action PlayerUITriggerExit;
@@ -30,15 +27,30 @@ public class UITrigger : MonoBehaviour
 
         if (Physics.Raycast(transform.position, Camera.main.transform.forward, out hit, _raycastDistance) && !_colliderIsTrigger)
         {
-            if(hit.collider.CompareTag(_colliderTagName))
-            {
+            if (hit.collider.CompareTag(_colliderTagName))
+            {                
                 PlayerUITriggerEnter?.Invoke();
 
-                hit.transform.gameObject.GetComponent<UIInteraction>().SetFadeOutTimer(_fadeOutTime);
+                hit.collider.gameObject.GetComponentInChildren<UIFader>()?.GetFadeIn();
 
                 Debug.Log("Raycast hit: " + hit.collider.name + ", which has the tag: " + _colliderTagName);
             }
+            else 
+            {
+                PlayerUITriggerExit?.Invoke();
+
+                Debug.Log("Raycast hit: " + hit.collider.name + ", which does not have the tag: " + _colliderTagName);
+            }
         }
+        else
+        {
+            PlayerUITriggerExit?.Invoke();
+
+            hit.collider.gameObject.GetComponentInChildren<UIFader>()?.GetFadeOut();
+
+            Debug.Log("Raycast did not hit anything within the distance of: " + _raycastDistance);
+        }
+
     }
 
     private void OnTriggerEnter(Collider other)
@@ -49,7 +61,12 @@ public class UITrigger : MonoBehaviour
             
             PlayerUITriggerEnter?.Invoke();
 
-            _UIFaderScript.GetFadeIn();
+            other.gameObject.GetComponentInChildren<UIFader>()?.GetFadeIn();
+
+            //_UIFaderScript.GetFadeIn();
+
+            //other.gameObject.transform.GetComponentInChildren<UIFader>().GetFadeIn();
+
         }
         else
         {
@@ -70,7 +87,11 @@ public class UITrigger : MonoBehaviour
 
             PlayerUITriggerExit?.Invoke();
 
-            _UIFaderScript.GetFadeOut();
+            other.gameObject.GetComponentInChildren<UIFader>()?.GetFadeOut();
+
+            //_UIFaderScript.GetFadeOut();
+
+            //other.gameObject.transform.GetComponentInChildren<UIFader>().GetFadeOut();
         }
         else
         {

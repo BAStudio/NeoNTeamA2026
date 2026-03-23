@@ -9,27 +9,59 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private float _pullUpForce;
 
+    [SerializeField] private float _pullUpSpeed;
+
+    public static event System.Action HoldingUp;
+
     private bool _canPullUp;
+
+    private bool _pullingUp;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         _canPullUp = false;
+
+        _pullingUp = false;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(_canPullUp)
-        {             
+
+        if (_canPullUp)
+        {
             PullingUp();
         }
+
+        if (_pullingUp)
+        {
+            _playerHangingPoint.position = Vector3.Lerp(_playerHangingPoint.position, _hangingPoint.position, _pullUpSpeed * Time.deltaTime);
+
+            if (Vector3.Distance(_playerHangingPoint.position, _hangingPoint.position) < 0.01f)
+            {
+                _playerHangingPoint.position = _hangingPoint.position;
+
+                HoldingUp?.Invoke();
+
+                _canPullUp = false;
+
+                Debug.Log("Executed the 'PullingUp' and 'HoldingUp' actions");
+            }
+        }
+
+        
     }
 
-    public void PullingUp()
+    public void CanPullUp()
     {
-        _playerHangingPoint.position = Vector3.Lerp(_playerHangingPoint.position, _hangingPoint.position, Time.deltaTime * _pullUpForce);
+        _canPullUp = true;
+    }
 
-        Debug.Log("Pulling up");
+    private void PullingUp()
+    {
+        _pullingUp = true;
+
+        _canPullUp = false;
     }
 }
 

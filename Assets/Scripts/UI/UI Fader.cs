@@ -1,73 +1,94 @@
-using UnityEngine;
+using NUnit;
 using System.Collections;
+using Unity.VisualScripting;
+using UnityEngine;
+using TMPro;
 
 public class UIFader : MonoBehaviour
 {
     [SerializeField] private float _fadeDuration = 1f;
 
-    private bool _shouldFadeIn = false;
+    /*[SerializeField] private CanvasGroup _canvasGroup;*/
+ 
+    [SerializeField] private float _fadeTimer = 0f;
 
-    private bool _shouldFadeOut = false;
+    private TMPro.TextMeshPro _textMeshPro;
 
-    float time = 0;
+    private float _fadeTime = 0f;
 
-    private CanvasGroup canvasGroup;
-    
+    private bool _fadeIn;
+
+    private float _fadeEndValue;
+
+    private Color32 startColor;
+
     private void Start()
     {
-        canvasGroup.alpha = 0f;
+        if (_textMeshPro == null)
+        {
+            _textMeshPro = GetComponentInChildren<TextMeshPro>();
+
+            Debug.Log("TextMeshPro component found: " + _textMeshPro.name);
+        }
+
+        _textMeshPro.alpha = 0f;
     }
 
     private void Update()
-    {
-        if(_shouldFadeIn)
+    { 
+        if(Input.GetKey(KeyCode.F))
         {
-            FadeIn();
+            GetFadeIn();
         }
-        else if (_shouldFadeOut)
+
+        if (Input.GetKey(KeyCode.G))
         {
-            FadeOut();
+            GetFadeOut();
         }
+
+        if(_fadeIn && _textMeshPro.alpha >= 0f)
+        {
+            _textMeshPro.alpha = 1f;
+            //_canvasGroup.alpha = Mathf.Lerp(_canvasGroup.alpha, _fadeEndValue, _fadeDuration / _fadeTime);
+
+            _fadeTime += Time.deltaTime;
+        }
+
+        if(!_fadeIn && _textMeshPro.alpha <= 1f)
+        {
+            _textMeshPro.alpha = 0f;
+            //_textMeshPro.alpha *= _fadeDuration * Time.deltaTime;
+            //_canvasGroup.alpha = Mathf.Lerp(_canvasGroup.alpha, _fadeEndValue, _fadeDuration / _fadeTime);
+
+            _fadeTime += Time.deltaTime;
+        }
+
+        //UITrigger.PlayerUITriggerEnter += GetFadeIn;
+        //UITrigger.PlayerUITriggerExit += GetFadeOut;
+
+        UIInteraction.InteractionUIFadeOut += GetFadeOut;
     }
 
-    void Awake()
-    {
-        canvasGroup = GetComponent<CanvasGroup>();
-    }
-
-    private void FadeIn()
-    {
-        Fade(1f, 0f, _fadeDuration);
-    }
-
-    private void FadeOut()
-    {
-        Fade(0f, 1f, _fadeDuration);
-    }
     public void GetFadeIn()
     {
-        _shouldFadeIn = true;
+        //Fade(_canvasGroup.alpha, 1f, _fadeDuration);
+
+        _fadeIn = true;
+
+        //_fadeEndValue = 1f;
+
+        Debug.Log("Fading In");
     }
 
     public void GetFadeOut()
     {
-        _shouldFadeOut = true;
-    }
+        //Fade(_canvasGroup.alpha, 0f, _fadeDuration);
 
-    private void Fade(float start, float end, float duration)
-    {
-        if(time < duration)
-        {
-            canvasGroup.alpha = Mathf.Lerp(start, end, time / duration);
-            time += Time.deltaTime;
-        }
-        if (time >= duration)
-        {
-            time = 0;
-            _shouldFadeIn = false;
-            _shouldFadeOut = false;
-            canvasGroup.alpha = end;
-        }
+        _fadeIn = false;
+
+        //_fadeEndValue = 0f;
+
+        Debug.Log("Fading Out");
     }
 }
 
