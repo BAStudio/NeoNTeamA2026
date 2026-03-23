@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class PullUp : MonoBehaviour
@@ -6,6 +5,8 @@ public class PullUp : MonoBehaviour
     [SerializeField] private Transform _playerHangingPoint;
 
     [SerializeField] private Transform _hangingPoint;
+
+    [SerializeField] private Rigidbody _player;
 
     [SerializeField] private float _pullUpForce;
 
@@ -16,48 +17,58 @@ public class PullUp : MonoBehaviour
     private bool _canPullUp;
 
     private bool _pullingUp;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    private bool _hasHeldUp; 
+
     void Start()
     {
         _canPullUp = false;
 
         _pullingUp = false;
+
+        _hasHeldUp = false;
+
+        _player.isKinematic = false;
     }
 
-    // Update is called once per frame
     void Update()
     {
-
         if (_canPullUp)
         {
-            PullingUp();
+            StartPullingUp();
         }
 
         if (_pullingUp)
         {
             _playerHangingPoint.position = Vector3.Lerp(_playerHangingPoint.position, _hangingPoint.position, _pullUpSpeed * Time.deltaTime);
 
-            if (Vector3.Distance(_playerHangingPoint.position, _hangingPoint.position) < 0.01f)
+            if (!_hasHeldUp && Vector3.Distance(_playerHangingPoint.position, _hangingPoint.position) < 0.01f)
             {
                 _playerHangingPoint.position = _hangingPoint.position;
 
+                _player.isKinematic = true;
+
                 HoldingUp?.Invoke();
+
+                _hasHeldUp = true;
+
+                _pullingUp = false;
 
                 _canPullUp = false;
 
-                Debug.Log("Executed the 'PullingUp' and 'HoldingUp' actions");
+                Debug.Log("Executed the 'PullingUp' and 'HoldingUp' actions once!");
             }
         }
-
-        
     }
 
     public void CanPullUp()
     {
         _canPullUp = true;
+
+        _hasHeldUp = false; 
     }
 
-    private void PullingUp()
+    private void StartPullingUp()
     {
         _pullingUp = true;
 

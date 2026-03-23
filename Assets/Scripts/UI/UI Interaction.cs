@@ -14,8 +14,6 @@ public class UIInteraction : MonoBehaviour
 
     [SerializeField] private KeyCode _key;
 
-    [SerializeField] private UIFader _uiFaderScript;
-
     public static event System.Action InteractionUIFadeOut;
 
     private bool _playerUITriggerEnter;
@@ -76,16 +74,12 @@ public class UIInteraction : MonoBehaviour
     {
         InteractionFunction?.Invoke();
 
-        _uiFaderScript.GetComponent<UIFader>()?.GetFadeOut();
-
         Debug.Log("Successfully executed pressing action with input: " + _key);
     }
 
     private void HoldingKey()
     {
         InteractionFunction?.Invoke();
-
-        _uiFaderScript.GetComponent<UIFader>()?.GetFadeOut();
 
         Debug.Log("Successfully executed holding action with input: " + _key);
     }

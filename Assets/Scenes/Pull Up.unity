@@ -261,15 +261,14 @@ Transform:
   m_GameObject: {fileID: 398045232}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.01653, y: 2.42, z: 3.69283}
+  m_LocalPosition: {x: 0, y: 2.42, z: 1.44}
   m_LocalScale: {x: 2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1668493832}
-  - {fileID: 1419258220}
   - {fileID: 1487314914}
   - {fileID: 581656206}
-  m_Father: {fileID: 2097248542}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &398045237
 BoxCollider:
@@ -309,7 +308,19 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 398045240}
         m_TargetAssemblyTypeName: PullUp, Assembly-CSharp
-        m_MethodName: PullingUp
+        m_MethodName: CanPullUp
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1487314916}
+        m_TargetAssemblyTypeName: UIFader, Assembly-CSharp
+        m_MethodName: GetFadeOut
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -336,6 +347,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PullUp
   _playerHangingPoint: {fileID: 39083102}
   _hangingPoint: {fileID: 581656206}
+  _player: {fileID: 912133985}
   _pullUpForce: 3
   _pullUpSpeed: 3
 --- !u!114 &398045241
@@ -350,8 +362,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!1 &453458449
 GameObject:
   m_ObjectHideFlags: 0
@@ -451,6 +462,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PullUp
   _playerHangingPoint: {fileID: 39083102}
   _hangingPoint: {fileID: 453458450}
+  _player: {fileID: 912133985}
   _pullUpForce: 3
   _pullUpSpeed: 3
 --- !u!114 &610472970
@@ -470,7 +482,19 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 610472969}
         m_TargetAssemblyTypeName: PullUp, Assembly-CSharp
-        m_MethodName: PullingUp
+        m_MethodName: CanPullUp
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 867179040}
+        m_TargetAssemblyTypeName: UIFader, Assembly-CSharp
+        m_MethodName: GetFadeOut
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -590,17 +614,16 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 610472968}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.12753, y: 2.42, z: 3.69283}
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0.00000016391276}
+  m_LocalPosition: {x: -2.111, y: 2.42, z: -4.06}
   m_LocalScale: {x: 2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1383136424}
-  - {fileID: 827697243}
   - {fileID: 867179038}
   - {fileID: 453458450}
-  m_Father: {fileID: 2097248542}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!114 &610472978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -613,39 +636,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
---- !u!1 &676074501
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 676074502}
-  m_Layer: 0
-  m_Name: Script-Components
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &676074502
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 676074501}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.01653, y: -0, z: -2.25283}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  _fadeSpeed: 1
 --- !u!1 &731019364
 GameObject:
   m_ObjectHideFlags: 0
@@ -817,7 +808,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &827697243
 RectTransform:
   m_ObjectHideFlags: 0
@@ -825,16 +816,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 827697242}
-  m_LocalRotation: {x: -0.70710707, y: -0, z: -0, w: 0.70710653}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.0074168975, y: 0.07416897, z: 0.07416897}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.00010086821}
+  m_LocalScale: {x: 15.689405, y: 15.689405, z: 15.689405}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 610472975}
+  m_Father: {fileID: 1383136424}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -0.51}
+  m_AnchoredPosition: {x: 0, y: -0.00011122227}
   m_SizeDelta: {x: 30, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &827697244
@@ -949,8 +940,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!114 &827697247
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1159,7 +1149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
 --- !u!114 &867179040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1172,8 +1162,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!1 &909351496
 GameObject:
   m_ObjectHideFlags: 0
@@ -1488,6 +1477,7 @@ MonoBehaviour:
   _colliderIsTrigger: 0
   _colliderTagName: Pull Up Bar
   _raycastDistance: 5
+  _fadeOutDelay: 2
 --- !u!1 &935266936
 GameObject:
   m_ObjectHideFlags: 0
@@ -1801,7 +1791,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.00047273285, y: 0.0047273287, z: 0.0047273287}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 827697243}
   m_Father: {fileID: 610472975}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1821,8 +1812,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!1 &1419258219
 GameObject:
   m_ObjectHideFlags: 0
@@ -1842,7 +1832,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1419258220
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1850,16 +1840,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1419258219}
-  m_LocalRotation: {x: -0.70710707, y: -0, z: -0, w: 0.70710653}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.0074168975, y: 0.07416897, z: 0.07416897}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.00010086821}
+  m_LocalScale: {x: 15.689405, y: 15.689405, z: 15.689405}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 398045236}
+  m_Father: {fileID: 1668493832}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -0.51}
+  m_AnchoredPosition: {x: 0, y: -0.00011122227}
   m_SizeDelta: {x: 30, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1419258221
@@ -1974,8 +1964,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!114 &1419258224
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2184,7 +2173,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
 --- !u!114 &1487314916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2197,8 +2186,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!1 &1668493828
 GameObject:
   m_ObjectHideFlags: 0
@@ -2295,7 +2283,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.00047273285, y: 0.0047273287, z: 0.0047273287}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1419258220}
   m_Father: {fileID: 398045236}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2340,8 +2329,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFader
-  _fadeDuration: 1
-  _fadeTimer: 0
+  _fadeSpeed: 1
 --- !u!1 &1858547013
 GameObject:
   m_ObjectHideFlags: 0
@@ -2418,6 +2406,7 @@ MonoBehaviour:
   _colliderIsTrigger: 1
   _colliderTagName: Pull Up Bar
   _raycastDistance: 5
+  _fadeOutDelay: 2
 --- !u!1 &1921601260
 GameObject:
   m_ObjectHideFlags: 0
@@ -2530,39 +2519,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2097248541
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2097248542}
-  m_Layer: 0
-  m_Name: Pull Up Bars (Game Objects)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2097248542
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2097248541}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.01653, y: -0, z: -2.25283}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 398045236}
-  - {fileID: 610472975}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -2572,5 +2528,5 @@ SceneRoots:
   - {fileID: 935266940}
   - {fileID: 1921601264}
   - {fileID: 1038582692}
-  - {fileID: 2097248542}
-  - {fileID: 676074502}
+  - {fileID: 398045236}
+  - {fileID: 610472975}
