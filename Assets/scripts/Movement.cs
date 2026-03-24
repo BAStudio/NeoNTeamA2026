@@ -1,52 +1,58 @@
-using System.Runtime.CompilerServices;
-using UnityEngine;
-using UnityEngine.Rendering;
+﻿using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
-    private float _speed = 30f;
+    [SerializeField] private float _speed;
     private Rigidbody rb;
     private bool _isRunning = false;
-    private float _runSpeed = 50f;
-    private float _walkSpeed = 30f;
+
+    [SerializeField] private float _runSpeed = 25f;
+    [SerializeField] private float _walkSpeed = 15f;
 
     private bool _allowedToMove = true;
 
-
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        rb = gameObject.GetComponent<Rigidbody>();
-    }
+        rb = GetComponent<Rigidbody>();
 
-    // Update is called once per frame
-    void Update()
-    {
+        // Subscribe ONCE
         NotePad.StopMovement += StopMovement;
-
         NotePad.ContinueMovement += ContinueMovement;
 
-        if(_allowedToMove)
-        {
-            Move();
-        }
+        // Prevent tipping over
+        rb.freezeRotation = true;
 
+        // Better collision for fast movement
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    }
+
+    void FixedUpdate()
+    {
         if (!_allowedToMove)
         {
+            // Stop movement completely
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
 
+        Move();
     }
 
     private void Move()
     {
-        //laat het character bewegen naar voor achter links en recht
-        transform.position -= (Input.GetAxis("Vertical") * transform.forward + Input.GetAxis("Horizontal") * transform.right) * _speed * Time.deltaTime;
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
 
-        //zorgt ervoor als je left shift in klikt dat je sneller gaat (sprinten)
+        Vector3 move = (v * transform.forward + h * transform.right).normalized;
+
+        // Sprint logic
         _isRunning = Input.GetKey(KeyCode.LeftShift);
-        _speed = _isRunning ? _runSpeed : _walkSpeed;  
+        _speed = _isRunning ? _runSpeed : _walkSpeed;
+
+        Vector3 targetVelocity = move * _speed;
+
+        // ✅ THIS is the key line
+        rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
     }
 
     private void StopMovement()
