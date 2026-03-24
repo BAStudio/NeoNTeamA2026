@@ -3,6 +3,7 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
+  tags: []
   tags:
   - mantling
   layers:
@@ -12,11 +13,12 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - Ground
+  - Wall
   - 
   - 
   - cimb
-  - 
+  - Enemy
   - 
   - 
   - 

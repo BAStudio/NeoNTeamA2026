@@ -4138,7 +4138,8 @@ GameObject:
   - component: {fileID: 2033775859}
   - component: {fileID: 2033775863}
   - component: {fileID: 2033775864}
-  m_Layer: 0
+  - component: {fileID: 2033775865}
+  m_Layer: 10
   m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4277,6 +4278,9 @@ MonoBehaviour:
   lookAroundDuration: 10
   pathRefreshRate: 0.6
   nodeReachThreshold: 0.2
+  signalDetectionMultiplier: 40
+  signalMemoryTime: 2
+  signalReceiveCooldown: 0.08
   verboseLogs: 1
   showOnScreenDebug: 1
 --- !u!114 &2033775864
@@ -4292,6 +4296,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitDamage
   damageAmount: 10
+--- !u!54 &2033775865
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2033775858}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 84
+  m_CollisionDetection: 0
 --- !u!1 &2051712418
 GameObject:
   m_ObjectHideFlags: 0
@@ -4766,8 +4797,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6866554228542006716}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.46, y: -0.12, z: 2.59}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 20.46, y: -0.12, z: 2.5900002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4855,6 +4886,7 @@ GameObject:
   - component: {fileID: 8813006828771327823}
   - component: {fileID: 8813006828771327826}
   - component: {fileID: 8813006828771327825}
+  - component: {fileID: 8813006828771327827}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -4877,7 +4909,7 @@ MonoBehaviour:
   damageAmount: 0
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
   rayLength: 1.5
   minimumFallTime: 0.5
 --- !u!114 &8813006828771327824
@@ -4943,6 +4975,32 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &8813006828771327827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6866554228542006716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af0e6c64e6a170f41b4fe5c05927fd90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSignalScanner
+  maxRadius: 15
+  minRadius: 2
+  expansionSpeed: 20
+  baseStrength: 1
+  velocityThreshold: 2
+  maxSpeedForFullSignal: 5
+  velocitySmoothing: 0.5
+  radiusSpeedInfluence: 0.456
+  rayCount: 128
+  detectionLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  drawDebugRays: 1
+  drawGizmos: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
