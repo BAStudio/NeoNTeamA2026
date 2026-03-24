@@ -19,9 +19,6 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     [SerializeField] private float signalMemoryTime = 2f; // how long AI 'remembers' a signal
     [SerializeField] private float signalReceiveCooldown = 0.08f; // prevent spam stacking every rayframe
 
-    [Header("Hearing")]
-    [SerializeField] private float hearingDetectionMultiplier = 35f; // Hearing boost - stalker responds strongly to sounds
-
     [Header("Predictive Chasing")]
     [SerializeField] private float predictionLookAhead = 0.5f; // How far ahead to predict player movement
     [SerializeField] private float chasePathRefreshRate = 0.1f; // Faster refresh during chase (was 0.3f in pathfinding)
@@ -187,7 +184,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         if (hearsPlayer)
         {
             // Strong hearing response for stalker behavior
-            detectionMeter.AddDetection(hearingDetectionMultiplier);
+            detectionMeter.AddDetection(hearingSystem.GetHearingDetectionBoost());
             lastSeenPosition = player.position;
         }
 
