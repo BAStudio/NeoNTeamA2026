@@ -348,8 +348,13 @@ MonoBehaviour:
   _playerHangingPoint: {fileID: 39083102}
   _hangingPoint: {fileID: 581656206}
   _player: {fileID: 912133985}
-  _pullUpForce: 3
-  _pullUpSpeed: 3
+  _playerCollider: {fileID: 912133986}
+  _pullUpSpeed: 1
+  _playerCamera: {fileID: 731019369}
+  _rotatePlayer: {fileID: 912133990}
+  HoldingUp:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &398045241
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -388,7 +393,7 @@ Transform:
   m_GameObject: {fileID: 453458449}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -2.1900005, z: 0}
+  m_LocalPosition: {x: 0, y: -5.54, z: 0}
   m_LocalScale: {x: 0.5, y: 5, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -419,7 +424,7 @@ Transform:
   m_GameObject: {fileID: 581656205}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -2.1900005, z: 0}
+  m_LocalPosition: {x: 0, y: -5.5400004, z: 0}
   m_LocalScale: {x: 0.5, y: 5, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -463,8 +468,13 @@ MonoBehaviour:
   _playerHangingPoint: {fileID: 39083102}
   _hangingPoint: {fileID: 453458450}
   _player: {fileID: 912133985}
-  _pullUpForce: 3
-  _pullUpSpeed: 3
+  _playerCollider: {fileID: 912133986}
+  _pullUpSpeed: 1
+  _playerCamera: {fileID: 731019369}
+  _rotatePlayer: {fileID: 912133990}
+  HoldingUp:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &610472970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -789,6 +799,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCamera
   mouseSensitivity: 100
   verticalLookLimit: 90
+  horizontalLookLimit: 60
+  smoothSpeed: 10
 --- !u!1 &827697242
 GameObject:
   m_ObjectHideFlags: 0
@@ -1149,7 +1161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 0
+  _lookAtPlayer: 1
 --- !u!114 &867179040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1157,7 +1169,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 867179035}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 
@@ -2173,7 +2185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 0
+  _lookAtPlayer: 1
 --- !u!114 &1487314916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2181,7 +2193,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1487314911}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7228f9d427f13854ba06bf4b9f6cfda7, type: 3}
   m_Name: 

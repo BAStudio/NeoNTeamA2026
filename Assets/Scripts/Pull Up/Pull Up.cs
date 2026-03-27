@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public class PullUp : MonoBehaviour
 {
@@ -8,19 +9,27 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private Rigidbody _player;
 
-    [SerializeField] private float _pullUpForce;
+    [SerializeField] private Collider _playerCollider;
 
     [SerializeField] private float _pullUpSpeed;
 
-    public static event System.Action HoldingUp;
+    [SerializeField] private PlayerCamera _playerCamera;
+
+    [SerializeField] private RotatePlayer _rotatePlayer;
+
+    [SerializeField] private UnityEvent HoldingUp;
 
     private bool _canPullUp;
 
     private bool _pullingUp;
 
-    private bool _hasHeldUp; 
+    private bool _hasHeldUp;
 
-    void Start()
+    private Vector3 _startPosition;
+
+    private float _progress;
+
+    private void Start()
     {
         _canPullUp = false;
 
@@ -29,9 +38,11 @@ public class PullUp : MonoBehaviour
         _hasHeldUp = false;
 
         _player.isKinematic = false;
+
+        _playerCollider.enabled = true;
     }
 
-    void Update()
+    private void Update()
     {
         if (_canPullUp)
         {
@@ -40,23 +51,28 @@ public class PullUp : MonoBehaviour
 
         if (_pullingUp)
         {
-            _playerHangingPoint.position = Vector3.Lerp(_playerHangingPoint.position, _hangingPoint.position, _pullUpSpeed * Time.deltaTime);
+            _progress += _pullUpSpeed * Time.deltaTime;
 
-            if (!_hasHeldUp && Vector3.Distance(_playerHangingPoint.position, _hangingPoint.position) < 0.01f)
+            Vector3 newPosition = Vector3.Lerp(
+                _startPosition,
+                _hangingPoint.position,
+                _progress
+            );
+
+            _playerHangingPoint.position = newPosition;
+
+            _player.transform.position = _playerHangingPoint.position;
+
+            if (_progress >= 1f)
             {
                 _playerHangingPoint.position = _hangingPoint.position;
 
-                _player.isKinematic = true;
+                _player.transform.position = _hangingPoint.position;
 
-                HoldingUp?.Invoke();
-
-                _hasHeldUp = true;
-
-                _pullingUp = false;
-
-                _canPullUp = false;
-
-                Debug.Log("Executed the 'PullingUp' and 'HoldingUp' actions once!");
+                if (!_hasHeldUp)
+                {
+                    FinishPullUp();
+                }
             }
         }
     }
@@ -65,7 +81,7 @@ public class PullUp : MonoBehaviour
     {
         _canPullUp = true;
 
-        _hasHeldUp = false; 
+        _hasHeldUp = false;
     }
 
     private void StartPullingUp()
@@ -73,7 +89,53 @@ public class PullUp : MonoBehaviour
         _pullingUp = true;
 
         _canPullUp = false;
+
+        _startPosition = _playerHangingPoint.position;
+
+        _progress = 0f;
+
+        _player.linearVelocity = Vector3.zero;
+
+        _player.angularVelocity = Vector3.zero;
+
+        _player.isKinematic = true;
+    }
+
+    private void FinishPullUp()
+    {
+        _pullingUp = false;
+
+        _hasHeldUp = true;
+
+        _player.linearVelocity = Vector3.zero;
+
+        _player.angularVelocity = Vector3.zero;
+
+        _playerHangingPoint.position = _hangingPoint.position;
+
+        _player.transform.position = _hangingPoint.position;
+
+        _player.isKinematic = true;
+
+        HoldingUp?.Invoke();
+
+        _playerCamera.EnableLimitedLook();
+
+        _rotatePlayer.DisableRotation();
+
+        _playerCollider.enabled = false;
+
+        Debug.Log("Pull-up completed and aligned EXACTLY to hanging point!");
+    }
+
+    private void Release()
+    {
+        _playerCamera.DisableLimitedLook();
+
+        _rotatePlayer.EnableRotation();
+
+        _playerCollider.enabled = true;
+
+        _player.isKinematic = false;
     }
 }
-
-

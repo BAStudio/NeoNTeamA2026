@@ -4,26 +4,65 @@ using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
-    public float mouseSensitivity = 100f; // Sensitivity of the mouse
-    public float verticalLookLimit = 90f; // Maximum up/down look angle
+    public float mouseSensitivity = 100f; 
+    public float verticalLookLimit = 90f; 
 
-    private float xRotation = 0f; // Tracks up/down rotation
+    [SerializeField] private float horizontalLookLimit = 60f; 
+    [SerializeField] private float smoothSpeed = 10f;
+
+    private float xRotation = 0f; 
+    private float yRotation = 0f; 
+
+    private bool _limitedLook = false; 
+
+    private Quaternion _targetRotation;
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked; // Locks the cursor to the center
+        Cursor.lockState = CursorLockMode.Locked; 
+
+        _targetRotation = transform.localRotation; 
     }
 
     void Update()
     {
-        // Get mouse input (only vertical movement)
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime; 
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        // Adjust vertical rotation (pitch)
         xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -verticalLookLimit, verticalLookLimit); // Limit up/down rotation
+        xRotation = Mathf.Clamp(xRotation, -verticalLookLimit, verticalLookLimit);
 
-        // Apply rotation to the camera (up/down only)
-        transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        if (_limitedLook)
+        {
+            yRotation += mouseX;
+
+            yRotation = Mathf.Clamp(yRotation, -horizontalLookLimit, horizontalLookLimit);
+        }
+        else
+        {
+            yRotation = 0f; 
+        }
+
+        _targetRotation = Quaternion.Euler(xRotation, yRotation, 0f);
+
+        transform.localRotation = Quaternion.Slerp(
+            transform.localRotation,
+            _targetRotation,
+            smoothSpeed * Time.deltaTime
+        );
+    }
+
+    public void EnableLimitedLook()
+    {
+        _limitedLook = true;
+
+        yRotation = 0f; 
+    }
+
+    public void DisableLimitedLook()
+    {
+        _limitedLook = false;
+
+        yRotation = 0f;
     }
 }
