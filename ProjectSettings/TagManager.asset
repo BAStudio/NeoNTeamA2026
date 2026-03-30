@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - mantling
+  - Camera
   layers:
   - Default
   - TransparentFX
