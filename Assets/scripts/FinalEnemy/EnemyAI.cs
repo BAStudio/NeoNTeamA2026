@@ -3,74 +3,121 @@ using UnityEngine;
 
 public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 {
-    private enum AIState { Patrol, Alert, Search, Chase }
-
     [Header("References")]
     [SerializeField] private Grid3DMaster masterGrid;
     [SerializeField] private Transform player;
     [SerializeField] private string playerTag = "Player";
-    [SerializeField] private LayerMask wallLayer;
 
-    [Header("Movement")]
-    [SerializeField] private float patrolSpeed = 2f;
-    [SerializeField] private float alertSpeed = 2.5f;
-    [SerializeField] private float chaseSpeed = 5f;
-    [SerializeField] private float rotationSpeed = 4f;
-
-    [Header("Vision / FOV")]
-    [SerializeField] private float viewRadius = 14f;
-    [SerializeField, Range(0, 360)] private float viewAngle = 85f;
-    [SerializeField] private float eyeHeight = 1.6f;
-
-    [Header("Multi-ray detection")]
-    [SerializeField, Range(1, 11)] private int rayCount = 5;
-    [SerializeField] private bool drawVisionRays = true;
-
-    [Header("Detection Meter")]
-    [SerializeField] private float detectionBuildSpeed = 60f;
-    [SerializeField] private float detectionDecaySpeed = 10f;
-    [SerializeField] private float maxDetection = 100f;
-
-    [Header("Hearing")]
-    [SerializeField] private float hearingRadius = 8f;
-    [SerializeField] private float hearingDetectionBoost = 20f;
-
-    [Header("Search")]
-    [SerializeField] private float searchDuration = 6f;
-    [SerializeField] private float searchRadius = 4f;
-    [SerializeField] private float lookAroundDuration = 10f;
-
-    [Header("Pathfinding")]
-    [SerializeField] private float pathRefreshRate = 0.3f;
-    [SerializeField] private float nodeReachThreshold = 0.2f;
+    [Header("Optional Systems")]
+    [SerializeField] private bool enableVision = true;
+    [SerializeField] private bool enableHearing = true;
+    [SerializeField] private bool enableSignalReceiver = true;
+    [SerializeField] private bool autoAddMissingSensorComponents = true;
 
     [Header("Signal Detection")]
     [SerializeField] private float signalDetectionMultiplier = 40f; // detection points per unit strength
     [SerializeField] private float signalMemoryTime = 2f; // how long AI 'remembers' a signal
     [SerializeField] private float signalReceiveCooldown = 0.08f; // prevent spam stacking every rayframe
 
+    [Header("Hearing")]
+    [SerializeField] private float hearingDetectionMultiplier = 35f; // Hearing boost - stalker responds strongly to sounds
+
+    [Header("Predictive Chasing")]
+    [SerializeField] private float predictionLookAhead = 0.5f; // How far ahead to predict player movement
+    [SerializeField] private float chasePathRefreshRate = 0.1f; // Faster refresh during chase (was 0.3f in pathfinding)
+
+    [Header("Room Patrol")]
+    [SerializeField] private float patrolScoutInterval = 9f;
+    [SerializeField, Range(0f, 1f)] private float patrolScoutOtherRoomChance = 0.35f;
+
+    [Header("Room/Search Look Around")]
+    [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 6f;
+    [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
+
+    [Header("Predictive Chasing")]
+    [SerializeField] private float predictionLookAhead = 0.5f; // How far ahead to predict player movement
+    [SerializeField] private float chasePathRefreshRate = 0.1f; // Faster refresh during chase (was 0.3f in pathfinding)
+
+    [Header("Room Patrol")]
+    [SerializeField] private float patrolScoutInterval = 9f;
+    [SerializeField, Range(0f, 1f)] private float patrolScoutOtherRoomChance = 0.35f;
+
+    [Header("Room/Search Look Around")]
+    [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 6f;
+    [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
+
     [Header("Debug")]
     [SerializeField] private bool verboseLogs = false;
     [SerializeField] private bool showOnScreenDebug = true;
 
-    // internal
-    private AIState currentState = AIState.Patrol;
-    private List<Node> allNodes = new List<Node>();
-    private List<Vector3> currentPath;
-    private int pathIndex;
-    private float detectionMeter;
-    private float searchTimer;
-    private float pathTimer;
-    private float alertTimer;
-    private float lookAroundTimer;
+    // Systems
+    private VisionDetectionSystem visionSystem;
+    private HearingDetectionSystem hearingSystem;
+    private DetectionMeter detectionMeter;
+    private AIStateManager stateManager;
+    private PathfindingSystem pathfinding;
+    private MovementController movement;
 
+    // Internal state
     private Vector3 lastSeenPosition;
     private Vector3 lastPlayerPosition;
     private Vector3 lastPlayerVelocity;
-
-    // signal internals
     private float signalTimer;
     private float signalCooldownTimer;
+    
+    // Position history for memory-based search
+    private List<Vector3> playerPositionHistory = new List<Vector3>();
+    [SerializeField] private int maxPositionHistoryCount = 10;
+    [SerializeField] private float positionHistoryUpdateInterval = 0.2f;
+    private float positionHistoryTimer;
+    
+    // Search state extensions
+    private int searchAttempts;
+    [SerializeField] private float searchTimeExtensionPerAttempt = 2f;
+    
+    // Chase-specific timing
+    private float chasePathTimer;
+    private float patrolScoutTimer;
+    private float lookAroundPauseTimer;
+    private int lastKnownRoomId = -1;
+
+    private void OnEnable()
+    {
+        // Get or create systems. Vision/hearing are optional.
+        if (enableVision)
+        {
+            visionSystem = GetComponent<VisionDetectionSystem>();
+            if (visionSystem == null && autoAddMissingSensorComponents)
+                visionSystem = gameObject.AddComponent<VisionDetectionSystem>();
+        }
+        else
+        {
+            visionSystem = null;
+        }
+
+        if (enableHearing)
+        {
+            hearingSystem = GetComponent<HearingDetectionSystem>();
+            if (hearingSystem == null && autoAddMissingSensorComponents)
+                hearingSystem = gameObject.AddComponent<HearingDetectionSystem>();
+        }
+        else
+        {
+            hearingSystem = null;
+        }
+
+        detectionMeter = GetComponent<DetectionMeter>();
+        if (detectionMeter == null) detectionMeter = gameObject.AddComponent<DetectionMeter>();
+
+        stateManager = GetComponent<AIStateManager>();
+        if (stateManager == null) stateManager = gameObject.AddComponent<AIStateManager>();
+
+        pathfinding = GetComponent<PathfindingSystem>();
+        if (pathfinding == null) pathfinding = gameObject.AddComponent<PathfindingSystem>();
+
+        movement = GetComponent<MovementController>();
+        if (movement == null) movement = gameObject.AddComponent<MovementController>();
+    }
 
     private void Start()
     {
@@ -81,374 +128,378 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             return;
         }
 
-        allNodes.AddRange(masterGrid.GetAllNodes());
-        lastPlayerPosition = player != null ? player.position : Vector3.zero;
-        PickRandomPatrol();
+        // Initialize systems
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
+            if (playerObj != null)
+                player = playerObj.transform;
+        }
 
-        GameObject playerObj = GameObject.FindGameObjectWithTag(playerTag);
-        if (playerObj != null)
-            player = playerObj.transform;
+        if (visionSystem != null)
+            visionSystem.Initialize(player);
+        if (hearingSystem != null)
+            hearingSystem.Initialize(player);
+        pathfinding.SetMasterGrid(masterGrid);
+
+        if (enableVision && visionSystem == null && verboseLogs)
+            Debug.LogWarning("[AI] Vision enabled but VisionDetectionSystem is missing.");
+        if (enableHearing && hearingSystem == null && verboseLogs)
+            Debug.LogWarning("[AI] Hearing enabled but HearingDetectionSystem is missing.");
+
+        lastPlayerPosition = player != null ? player.position : Vector3.zero;
+        pathfinding.PickPatrolInCurrentRoom();
+        patrolScoutTimer = patrolScoutInterval;
+        lastKnownRoomId = pathfinding.GetRoomIdAtPosition(transform.position);
     }
 
     private void Update()
     {
-        if (player == null) return;
+        // Update sub-systems
+        stateManager.Update();
+        bool canUseVision = CanUseVisionSense();
+        bool seesPlayer = canUseVision && visionSystem.CanSeePlayer();
+        detectionMeter.Update(seesPlayer, stateManager.GetCurrentState());
 
-        // timers
-        if (signalCooldownTimer > 0f) signalCooldownTimer -= Time.deltaTime;
-        if (signalTimer > 0f)
+        // Update position history for memory-based search
+        if (player != null)
         {
-            signalTimer -= Time.deltaTime;
-            // if AI was patrolling, bias to investigate the signal briefly
-            if (currentState == AIState.Patrol)
+            positionHistoryTimer -= Time.deltaTime;
+            if (positionHistoryTimer <= 0f)
             {
-                currentState = AIState.Alert;
-                GeneratePath(lastSeenPosition);
+                playerPositionHistory.Insert(0, player.position);
+                if (playerPositionHistory.Count > maxPositionHistoryCount)
+                    playerPositionHistory.RemoveAt(playerPositionHistory.Count - 1);
+                positionHistoryTimer = positionHistoryUpdateInterval;
             }
         }
 
-        int rayHits = CastVisionRaysAndCountHits();
-        bool seesPlayer = CheckVision();
-        bool hearsPlayer = CheckHearing();
+        // Update timers
+        if (signalCooldownTimer > 0f)
+            signalCooldownTimer -= Time.deltaTime;
+
+        if (signalTimer > 0f)
+        {
+            signalTimer -= Time.deltaTime;
+            // If AI was patrolling, bias to investigate the signal briefly
+            if (stateManager.GetCurrentState() == AIStateManager.AIState.Patrol)
+            {
+                stateManager.EnterAlert();
+                pathfinding.GeneratePath(lastSeenPosition);
+            }
+        }
+
+        // Vision and hearing checks are optional.
+        if (canUseVision)
+            visionSystem.CastVisionRaysAndCountHits(GetLookDirection());
+
+        bool canUseHearing = CanUseHearingSense();
+        bool hearsPlayer = canUseHearing && hearingSystem.CanHearPlayer();
 
         if (hearsPlayer)
         {
-            detectionMeter = Mathf.Clamp(detectionMeter + hearingDetectionBoost, 0f, maxDetection);
+            // Strong hearing response for stalker behavior
+            detectionMeter.AddDetection(hearingDetectionMultiplier);
             lastSeenPosition = player.position;
         }
 
-        UpdateDetectionMeter(seesPlayer);
-
-        // While reacting to a recent signal, avoid overriding the signal-driven state
-        // with the detection-based state machine, to prevent Patrol/Alert oscillation.
+        // State machine - only update if not reacting to recent signal
         if (signalTimer <= 0f)
         {
             UpdateStateBasedOnDetection();
         }
 
-        // Behaviors
-        switch (currentState)
+        // Execute behavior based on current state
+        ExecuteBehavior();
+
+        // Trigger a brief scan when entering a different room while patrolling.
+        CheckRoomEntryLookAround();
+
+        // Update player velocity smoothing when player exists.
+        if (player != null)
         {
-            case AIState.Patrol: Patrol(); break;
-            case AIState.Alert: Alert(); break;
-            case AIState.Chase: Chase(); break;
-            case AIState.Search: Search(); break;
+            Vector3 currentPlayerVelocity = (player.position - lastPlayerPosition) / Mathf.Max(Time.deltaTime, 0.0001f);
+            lastPlayerVelocity = Vector3.Lerp(lastPlayerVelocity, currentPlayerVelocity, 0.5f);
+            lastPlayerPosition = player.position;
         }
-
-        MoveAlongPath();
-
-        // update player velocity smoothing
-        Vector3 currentPlayerVelocity = (player.position - lastPlayerPosition) / Mathf.Max(Time.deltaTime, 0.0001f);
-        lastPlayerVelocity = Vector3.Lerp(lastPlayerVelocity, currentPlayerVelocity, 0.5f);
-        lastPlayerPosition = player.position;
     }
 
-    #region Detection / States
-    private void UpdateDetectionMeter(bool seesPlayer)
+    private void FixedUpdate()
     {
-        if (seesPlayer)
-            detectionMeter += detectionBuildSpeed * Time.deltaTime;
-        else
-            detectionMeter -= detectionDecaySpeed * Time.deltaTime;
+        if (lookAroundPauseTimer > 0f)
+        {
+            lookAroundPauseTimer -= Time.fixedDeltaTime;
+            movement.RotateInPlace(lookAroundPauseRotateSpeed);
+            return;
+        }
 
-        detectionMeter = Mathf.Clamp(detectionMeter, 0f, maxDetection);
+        // High-frequency path recalculation during chase for smooth, responsive movement
+        if (player != null && stateManager.GetCurrentState() == AIStateManager.AIState.Chase)
+        {
+            chasePathTimer -= Time.fixedDeltaTime;
+            if (chasePathTimer <= 0f)
+            {
+                // Predict where player will be and reroute
+                Vector3 predictedPosition = player.position + (lastPlayerVelocity * predictionLookAhead);
+                pathfinding.GeneratePath(predictedPosition);
+                chasePathTimer = chasePathRefreshRate;
+            }
+        }
+
+        // Keep movement and path stepping on the same fixed timestep for smoother motion.
+        Vector3? waypoint = pathfinding.GetNextWaypoint();
+        if (waypoint.HasValue)
+        {
+            movement.MoveTowardsWaypoint(waypoint.Value, stateManager.GetCurrentState(), Time.fixedDeltaTime);
+            pathfinding.UpdatePathProgress();
+        }
     }
 
     private void UpdateStateBasedOnDetection()
     {
-        if (detectionMeter >= maxDetection * 0.8f)
+        float detection = detectionMeter.GetDetection();
+        float maxDetection = detectionMeter.GetMaxDetection();
+
+        // Chase state persists until detection drops below 95%
+        if (stateManager.GetCurrentState() == AIStateManager.AIState.Chase)
         {
-            if (currentState != AIState.Chase)
-                currentState = AIState.Chase;
-        }
-        else if (detectionMeter >= maxDetection * 0.4f)
-        {
-            if (currentState != AIState.Alert)
+            if (detection < maxDetection * 0.95f)
             {
-                currentState = AIState.Alert;
-                alertTimer = 2f;
-                GeneratePath(lastSeenPosition);
+                stateManager.EnterSearch();
+                searchAttempts = 0; // Reset search attempts on exit from chase
+            }
+            return;
+        }
+
+        // Fully detected - enter Chase (70% threshold, lowered from 80%)
+        if (detection >= maxDetection * 0.7f)
+        {
+            stateManager.EnterChase();
+        }
+        // Stalking threshold (50% of max) - slow creep toward last seen position
+        else if (detection >= maxDetection * 0.5f)
+        {
+            if (stateManager.GetCurrentState() != AIStateManager.AIState.Stalking)
+            {
+                stateManager.EnterStalking();
+                pathfinding.GeneratePath(lastSeenPosition);
             }
         }
+        // Alert threshold (30% of max, lowered from 40%)
+        else if (detection >= maxDetection * 0.3f)
+        {
+            if (stateManager.GetCurrentState() != AIStateManager.AIState.Alert && stateManager.GetCurrentState() != AIStateManager.AIState.Stalking)
+            {
+                stateManager.EnterAlert();
+                pathfinding.GeneratePath(lastSeenPosition);
+            }
+        }
+        // Back to Patrol
         else
         {
-            if (currentState != AIState.Patrol && currentState != AIState.Search)
+            if (stateManager.GetCurrentState() != AIStateManager.AIState.Patrol && stateManager.GetCurrentState() != AIStateManager.AIState.Search)
             {
-                currentState = AIState.Patrol;
-                PickRandomPatrol();
+                stateManager.EnterPatrol();
+                pathfinding.PickPatrolInCurrentRoom();
+                searchAttempts = 0;
+                patrolScoutTimer = patrolScoutInterval;
             }
         }
     }
 
-    private void EnterSearch()
+    private void ExecuteBehavior()
     {
-        currentState = AIState.Search;
-        searchTimer = searchDuration;
-        lookAroundTimer = lookAroundDuration;
-        GeneratePath(lastSeenPosition);
-    }
-    #endregion
+        var state = stateManager.GetCurrentState();
 
-    #region Vision & Hearing
-    private int CastVisionRaysAndCountHits()
-    {
-        int hits = 0;
-        Vector3 eyePos = transform.position + Vector3.up * eyeHeight;
-        Vector3 centerDir = transform.forward;
-        if (currentPath != null && pathIndex < currentPath.Count)
+        switch (state)
         {
-            Vector3 nextNode = currentPath[pathIndex];
-            Vector3 dirToNext = nextNode - transform.position;
-            dirToNext.y = 0f;
-            if (dirToNext.sqrMagnitude > 0.0001f) centerDir = dirToNext.normalized;
+            case AIStateManager.AIState.Patrol:
+                ExecutePatrol();
+                break;
+            case AIStateManager.AIState.Alert:
+                ExecuteAlert();
+                break;
+            case AIStateManager.AIState.Stalking:
+                ExecuteStalking();
+                break;
+            case AIStateManager.AIState.Chase:
+                ExecuteChase();
+                break;
+            case AIStateManager.AIState.Search:
+                ExecuteSearch();
+                break;
         }
+    }
 
-        float baseAngle = Mathf.Atan2(centerDir.x, centerDir.z) * Mathf.Rad2Deg;
+    private void ExecutePatrol()
+    {
+        patrolScoutTimer -= Time.deltaTime;
 
-        for (int i = 0; i < rayCount; i++)
+        if (pathfinding.IsPathComplete())
         {
-            float t = (rayCount == 1) ? 0.5f : (float)i / (rayCount - 1);
-            float angle = Mathf.Lerp(-viewAngle / 2f, viewAngle / 2f, t);
-            Vector3 dir = DirFromAngle(baseAngle + angle, true);
+            bool shouldScoutOtherRoom = patrolScoutTimer <= 0f && Random.value <= patrolScoutOtherRoomChance;
+            bool routedToOtherRoom = false;
 
-            if (Physics.Raycast(eyePos, dir, out RaycastHit hit, viewRadius))
+            if (shouldScoutOtherRoom)
             {
-                if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
-                {
-                    if (drawVisionRays) Debug.DrawRay(eyePos, dir * hit.distance, Color.red);
-                    continue; // hit wall, block vision
-                }
-
-                bool hitPlayer = IsHitPlayer(hit);
-                if (drawVisionRays) Debug.DrawRay(eyePos, dir * hit.distance, hitPlayer ? Color.green : Color.red);
-
-                if (hitPlayer) hits++;
+                routedToOtherRoom = pathfinding.PickPatrolInDifferentRoom();
+                patrolScoutTimer = patrolScoutInterval;
             }
-            else if (drawVisionRays)
-            {
-                Debug.DrawRay(eyePos, dir * viewRadius, Color.gray);
-            }
+
+            if (!routedToOtherRoom)
+                pathfinding.PickPatrolInCurrentRoom();
         }
-
-        return hits;
     }
 
-    private bool IsHitPlayer(RaycastHit hit)
+    private void ExecuteAlert()
     {
-        if (hit.collider == null) return false;
-        if (!string.IsNullOrEmpty(playerTag) && hit.collider.CompareTag(playerTag)) return true;
-        if (player != null && (hit.transform == player || hit.transform.IsChildOf(player))) return true;
-        return false;
-    }
+        if (pathfinding.IsPathComplete())
+            pathfinding.GeneratePath(lastSeenPosition);
 
-    private bool CheckVision()
-    {
-        if (player == null) return false;
-        Vector3 eyePos = transform.position + Vector3.up * eyeHeight;
-        Vector3 targetPos = player.position + Vector3.up * eyeHeight;
-        Vector3 dirToPlayer = targetPos - eyePos;
-        float distance = dirToPlayer.magnitude;
-
-        if (distance > viewRadius) return false;
-        if (Vector3.Angle(transform.forward, dirToPlayer.normalized) > viewAngle / 2f) return false;
-
-        // Wall blocking
-        if (Physics.Linecast(eyePos, targetPos, wallLayer))
-            return false;
-
-        return true;
-    }
-
-    private bool CheckHearing()
-    {
-        if (player == null) return false;
-        float dist = Vector3.Distance(transform.position, player.position);
-        if (dist <= hearingRadius)
+        if (stateManager.IsAlertExpired())
         {
-            lastSeenPosition = player.position;
-            return true;
-        }
-        return false;
-    }
-    #endregion
-
-    #region Behaviors
-    private void Patrol()
-    {
-        if (currentPath == null || pathIndex >= currentPath.Count)
-            PickRandomPatrol();
-    }
-
-    private void Alert()
-    {
-        if (currentPath == null || pathIndex >= currentPath.Count)
-            GeneratePath(lastSeenPosition);
-
-        alertTimer -= Time.deltaTime;
-        if (alertTimer <= 0f)
-        {
-            if (detectionMeter >= maxDetection * 0.8f)
-                currentState = AIState.Chase;
+            if (detectionMeter.IsFullyDetected())
+                stateManager.EnterChase();
+            else if (detectionMeter.IsStalking())
+                stateManager.EnterStalking();
             else
-                EnterSearch();
+                stateManager.EnterSearch();
         }
     }
 
-    private void Chase()
+    /// <summary>
+    /// Stalking: Slow creep toward last seen position - eerie and threatening
+    /// </summary>
+    private void ExecuteStalking()
     {
-        if (player == null) return;
-        lastSeenPosition = player.position;
+        if (pathfinding.IsPathComplete())
+            pathfinding.GeneratePath(lastSeenPosition);
 
-        pathTimer -= Time.deltaTime;
-        if (pathTimer <= 0f)
+        if (stateManager.IsStalkExpired())
         {
-            GeneratePath(player.position);
-            pathTimer = pathRefreshRate;
+            // If still detecting something, commit to chase
+            if (detectionMeter.IsFullyDetected())
+            {
+                stateManager.EnterChase();
+            }
+            else if (detectionMeter.IsStalking())
+            {
+                // Extend stalking time - determined behavior
+                stateManager.EnterStalking();
+            }
+            else
+            {
+                stateManager.EnterSearch();
+            }
         }
     }
 
-    private void Search()
+    /// <summary>
+    /// Chase: Full pursuit with predictive pathfinding (handled in FixedUpdate for smooth recalculation)
+    /// </summary>
+    private void ExecuteChase()
     {
-        if (lookAroundTimer > 0f)
-        {
-            // rotate in place to "look around"
-            transform.Rotate(Vector3.up, 60f * Time.deltaTime);
-            lookAroundTimer -= Time.deltaTime;
-            return;
-        }
-
-        searchTimer -= Time.deltaTime;
-
-        if (currentPath == null || pathIndex >= currentPath.Count)
-        {
-            Vector3 candidate = lastSeenPosition + Random.insideUnitSphere * searchRadius;
-            candidate.y = transform.position.y;
-            GeneratePath(candidate);
-        }
-
-        if (searchTimer <= 0f)
-        {
-            detectionMeter = 0f;
-            currentState = AIState.Patrol;
-            PickRandomPatrol();
-        }
-    }
-    #endregion
-
-    #region Movement & Pathfinding
-    private void MoveAlongPath()
-    {
-        if (currentPath == null || pathIndex >= currentPath.Count) return;
-
-        float speed = patrolSpeed;
-        if (currentState == AIState.Alert) speed = alertSpeed;
-        if (currentState == AIState.Chase) speed = chaseSpeed;
-
-        Vector3 target = currentPath[pathIndex];
-        Vector3 dir = target - transform.position;
-        Vector3 moveDir = dir.normalized;
-
-        transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.deltaTime);
-
-        if (moveDir.sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), rotationSpeed * Time.deltaTime);
-
-        if (Vector3.Distance(transform.position, target) < nodeReachThreshold)
-            pathIndex++;
-    }
-
-    private void PickRandomPatrol()
-    {
-        if (masterGrid == null) return;
-        for (int i = 0; i < 12; i++)
-        {
-            Node n = masterGrid.GetRandomWalkableNode();
-            if (n == null) continue;
-            GeneratePath(n.WorldPosition);
-            return;
-        }
-    }
-
-    private void GeneratePath(Vector3 target)
-    {
-        var path = AStar(target);
-        if (path != null && path.Count > 0)
-        {
-            currentPath = path;
-            pathIndex = 0;
-        }
+        if (player != null)
+            lastSeenPosition = player.position;
         else
-        {
-            currentPath = null;
-            pathIndex = 0;
-        }
+            stateManager.EnterSearch();
+        
+        // Path recalculation is handled in FixedUpdate for consistent, smooth updates
     }
 
-    private List<Vector3> AStar(Vector3 targetPos)
+    /// <summary>
+    /// Search: Uses position history to track player's previous path
+    /// </summary>
+    private void ExecuteSearch()
     {
-        if (masterGrid == null) return null;
-        Node start = masterGrid.NodeFromWorld(transform.position);
-        Node target = masterGrid.NodeFromWorld(targetPos);
-        if (start == null || target == null) return null;
-
-        foreach (var n in allNodes) n.ResetCosts();
-        List<Node> openSet = new List<Node> { start };
-        HashSet<Node> closedSet = new HashSet<Node>();
-        start.GCost = 0;
-
-        while (openSet.Count > 0)
+        if (stateManager.IsLookingAround())
         {
-            Node current = openSet[0];
-            for (int i = 1; i < openSet.Count; i++)
+            // Rotate in place to "look around"
+            movement.RotateInPlace(60f);
+            return;
+        }
+
+        if (pathfinding.IsPathComplete())
+        {
+            // Use position history for memory-based search
+            Vector3 searchTarget;
+            if (playerPositionHistory.Count > 0)
             {
-                if (openSet[i].FCost < current.FCost || (openSet[i].FCost == current.FCost && openSet[i].HCost < current.HCost))
-                    current = openSet[i];
+                // Follow the oldest known position in history (backtracking the player's path)
+                searchTarget = playerPositionHistory[playerPositionHistory.Count - 1];
             }
-
-            openSet.Remove(current);
-            closedSet.Add(current);
-
-            if (current == target)
-                return RetraceToVector3(start, target);
-
-            foreach (var neighbor in masterGrid.GetNeighbors(current))
+            else
             {
-                if (neighbor == null || !neighbor.IsWalkable || closedSet.Contains(neighbor)) continue;
-                int newCost = current.GCost + 10;
-                if (newCost < neighbor.GCost)
-                {
-                    neighbor.GCost = newCost;
-                    neighbor.HCost = Mathf.RoundToInt(Vector3.Distance(neighbor.WorldPosition, target.WorldPosition));
-                    neighbor.Parent = current;
-                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
-                }
+                // Fallback to random search around last seen position
+                searchTarget = lastSeenPosition + Random.insideUnitSphere * stateManager.GetSearchRadius();
+            }
+            searchTarget.y = transform.position.y;
+            pathfinding.GeneratePath(searchTarget);
+        }
+
+        if (stateManager.IsSearchExpired())
+        {
+            // Extend search time - stalker is determined
+            searchAttempts++;
+            if (searchAttempts < 3) // Try up to 3 search cycles
+            {
+                stateManager.ExtendSearchTime(searchTimeExtensionPerAttempt);
+            }
+            else
+            {
+                // Give up after multiple attempts
+                detectionMeter.Reset();
+                stateManager.EnterPatrol();
+                pathfinding.PickPatrolInCurrentRoom();
+                searchAttempts = 0;
+                patrolScoutTimer = patrolScoutInterval;
+                StartLookAroundPause();
             }
         }
-
-        return null;
     }
 
-    private List<Vector3> RetraceToVector3(Node start, Node end)
+    private void CheckRoomEntryLookAround()
     {
-        List<Vector3> path = new List<Vector3>();
-        Node current = end;
-        while (current != null && current != start)
-        {
-            path.Add(current.WorldPosition);
-            current = current.Parent;
-        }
-        path.Reverse();
-        return path;
+        if (stateManager.GetCurrentState() != AIStateManager.AIState.Patrol)
+            return;
+
+        int currentRoomId = pathfinding.GetRoomIdAtPosition(transform.position);
+        if (currentRoomId < 0)
+            return;
+
+        if (lastKnownRoomId >= 0 && currentRoomId != lastKnownRoomId)
+            StartLookAroundPause();
+
+        lastKnownRoomId = currentRoomId;
     }
 
-    private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
+    private void StartLookAroundPause()
     {
-        if (!angleIsGlobal)
-            angleInDegrees += transform.eulerAngles.y;
-        float rad = angleInDegrees * Mathf.Deg2Rad;
-        return new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad));
+        lookAroundPauseTimer = Mathf.Min(10f, lookAroundPauseDuration);
     }
-    #endregion
+
+    private Vector3 GetLookDirection()
+    {
+        Vector3 nextWaypoint = pathfinding.GetNextWaypoint() ?? transform.position + transform.forward;
+        Vector3 dirToNext = nextWaypoint - transform.position;
+        dirToNext.y = 0f;
+        return dirToNext.sqrMagnitude > 0.0001f ? dirToNext.normalized : transform.forward;
+    }
+
+    private bool CanUseVisionSense()
+    {
+        return enableVision && visionSystem != null && player != null;
+    }
+
+    private bool CanUseHearingSense()
+    {
+        return enableHearing && hearingSystem != null && player != null;
+    }
+
+    private bool CanUseSignalSense()
+    {
+        return enableSignalReceiver && detectionMeter != null && stateManager != null && pathfinding != null;
+    }
 
     #region Signal Receiver
     /// <summary>
@@ -457,25 +508,26 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     /// </summary>
     public void OnSignalReceived(Vector3 source, float strength)
     {
+        if (!CanUseSignalSense()) return;
         if (signalCooldownTimer > 0f) return;
         signalCooldownTimer = signalReceiveCooldown;
 
         float addedDetection = strength * signalDetectionMultiplier;
-        detectionMeter = Mathf.Clamp(detectionMeter + addedDetection, 0f, maxDetection);
+        detectionMeter.AddDetection(addedDetection);
 
         lastSeenPosition = source;
         signalTimer = signalMemoryTime;
 
         // If strong signal, escalate state
-        if (detectionMeter >= maxDetection * 0.8f)
-            currentState = AIState.Chase;
+        if (detectionMeter.IsFullyDetected())
+            stateManager.EnterChase();
         else
-            currentState = AIState.Alert;
+            stateManager.EnterAlert();
 
-        GeneratePath(lastSeenPosition);
+        pathfinding.GeneratePath(lastSeenPosition);
 
         if (verboseLogs)
-            Debug.Log($"[AI] Signal received | Strength: {strength:F2} | Added: {addedDetection:F1} | New detection: {detectionMeter:F1}");
+            Debug.Log($"[AI] Signal received | Strength: {strength:F2} | Added: {addedDetection:F1} | New detection: {detectionMeter.GetDetection():F1}");
     }
     #endregion
 
@@ -484,56 +536,40 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     {
         Vector3 pos = transform.position;
 
-        // Hearing
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(pos, hearingRadius);
+        if (!Application.isPlaying)
+            return;
 
-        // FOV radius
-        Gizmos.color = Color.white;
-        Gizmos.DrawWireSphere(pos, viewRadius);
+        // Get systems for debugging
+        var vision = GetComponent<VisionDetectionSystem>();
+        var hearing = GetComponent<HearingDetectionSystem>();
+        var pathSys = GetComponent<PathfindingSystem>();
 
-        // FOV cone
-        Vector3 centerDir = transform.forward;
-        if (Application.isPlaying && currentPath != null && pathIndex < currentPath.Count)
+        if (enableVision && vision != null)
         {
-            Vector3 nextNode = currentPath[pathIndex];
-            Vector3 dirToNext = nextNode - transform.position;
-            dirToNext.y = 0f;
-            if (dirToNext.sqrMagnitude > 0.0001f) centerDir = dirToNext.normalized;
+            Vector3 lookDir = GetLookDirection();
+            vision.DrawDebugGizmos(pos, lookDir);
         }
 
-        Vector3 left = Quaternion.AngleAxis(-viewAngle / 2f, Vector3.up) * centerDir;
-        Vector3 right = Quaternion.AngleAxis(viewAngle / 2f, Vector3.up) * centerDir;
+        if (enableHearing && hearing != null)
+            hearing.DrawDebugGizmos(pos);
 
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawLine(pos, pos + left * viewRadius);
-        Gizmos.DrawLine(pos, pos + right * viewRadius);
-
-        // Path nodes
-        if (currentPath != null && currentPath.Count > 0)
-        {
-            Gizmos.color = Color.magenta;
-            for (int i = pathIndex; i < currentPath.Count; i++)
-            {
-                Gizmos.DrawSphere(currentPath[i], 0.1f);
-                if (i == pathIndex)
-                    Gizmos.DrawLine(pos, currentPath[i]);
-                else
-                    Gizmos.DrawLine(currentPath[i - 1], currentPath[i]);
-            }
-        }
+        if (pathSys != null)
+            pathSys.DrawDebugGizmos();
     }
 
     private void OnGUI()
     {
         if (!showOnScreenDebug) return;
         GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 14, normal = { textColor = Color.white } };
-        Rect rect = new Rect(10, 10, 400, 200);
-        string s = $"AI State: {currentState}\n" +
-                   $"Detection: {detectionMeter:F1}/{maxDetection}\n" +
+        Rect rect = new Rect(10, 10, 400, 250);
+        string s = $"AI State: {stateManager.GetCurrentState()}\n" +
+                   $"Detection: {detectionMeter.GetDetection():F1}/{detectionMeter.GetMaxDetection()}\n" +
                    $"LastSeen: {lastSeenPosition}\n" +
-                   $"Path nodes: {(currentPath == null ? 0 : currentPath.Count)}\n" +
-                   $"RayCount: {rayCount}";
+                   $"Path nodes: {(pathfinding.GetCurrentPath() == null ? 0 : pathfinding.GetCurrentPath().Count)}\n" +
+                   $"Rooms: {pathfinding.GetDetectedRoomCount()}\n" +
+                   $"PauseTimer: {lookAroundPauseTimer:F1}s\n" +
+                   $"Position History: {playerPositionHistory.Count}\n" +
+                   $"Search Attempts: {searchAttempts}";
         GUI.Label(rect, s, style);
     }
     #endregion
