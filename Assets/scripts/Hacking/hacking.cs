@@ -1,41 +1,97 @@
 using NUnit.Framework;
 using System.Collections.Generic;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 public class hacking : MonoBehaviour
 {
     List<char> codeThatNeedsToBehacked = new List<char>();
     List<char> userInput = new List<char>();
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
 
-        for(int i = 0; i < 5; i++)
-        {
-            codeThatNeedsToBehacked.Add((char) ('A' + Random.Range(0, 26)));
-        }
+    [SerializeField] List<TextMeshProUGUI> textMeshProUGUIs = new List<TextMeshProUGUI>();
 
-    }
+    char currentNeededCharacter;
 
-    // Update is called once per frame
+    int currentCharacterIndex = 0;
+    int finalCharacterIndex;
+
+    bool buttonPress;
+    bool codeCracked = true;
+    bool keyReleased = true;
+
+    string prefKey;
+    char prefChar;
+
     void Update()
     {
+        CheckCurrentInput();
 
-          
-
-        
-    }
-    private void OnGUI()
-    {
-        Event e = Event.current;
-        if (e.isKey)
+        if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-
-            userInput.Add(((char)e.keyCode));
-            for(int i = 0; i < userInput.Count; i++)
-            {
-                Debug.Log(userInput[i]);
-            }
+            ResetCode();
         }
     }
+
+    void ResetCode()
+    {
+        codeCracked = true;
+        codeThatNeedsToBehacked.Clear();
+        finalCharacterIndex = 0;
+        currentCharacterIndex = 0;
+        for (int i = 0; i < textMeshProUGUIs.Count; i++)
+        {
+            char currentCharacter = (char)('a' + Random.Range(0, 26));
+            while (currentCharacter == prefChar)
+            {
+                currentCharacter = (char)('a' + Random.Range(0, 26));
+            }
+            prefChar = currentCharacter;
+            codeThatNeedsToBehacked.Add(currentCharacter);
+            textMeshProUGUIs[i].text = currentCharacter.ToString().ToUpper();
+            textMeshProUGUIs[i].color = Color.red;
+        }
+        finalCharacterIndex = codeThatNeedsToBehacked.Count;
+        currentNeededCharacter = codeThatNeedsToBehacked[0];
+        codeThatNeedsToBehacked.Remove(currentNeededCharacter);
+        codeCracked = false;
+    }
+
+    void CheckCurrentInput()
+    {
+        InputSystem.onAnyButtonPress.Call(currentAction =>
+        {
+            if (codeCracked) return;
+
+            buttonPress = true;
+            if (buttonPress)
+            {
+                keyReleased = false;
+
+                if (currentAction.name.ToCharArray()[0] == currentNeededCharacter)
+                {
+                    textMeshProUGUIs[currentCharacterIndex].color = Color.green;
+
+                    currentCharacterIndex++;
+
+                    if (currentCharacterIndex >= finalCharacterIndex)
+                    {
+                        codeCracked = true;
+                        Debug.Log("you win");
+                        buttonPress = false;
+                    }
+                    else
+                    {
+                        currentNeededCharacter = codeThatNeedsToBehacked[0];
+                        codeThatNeedsToBehacked.Remove(currentNeededCharacter);
+                        buttonPress = false;
+                    }
+                }
+            }
+        });
+    }
+   
 }
