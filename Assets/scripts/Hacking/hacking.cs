@@ -21,7 +21,6 @@ public class hacking : MonoBehaviour
 
     bool buttonPress;
     bool codeCracked = true;
-    bool keyReleased = true;
 
     string prefKey;
     char prefChar;
@@ -69,8 +68,6 @@ public class hacking : MonoBehaviour
             buttonPress = true;
             if (buttonPress)
             {
-                keyReleased = false;
-
                 if (currentAction.name.ToCharArray()[0] == currentNeededCharacter)
                 {
                     textMeshProUGUIs[currentCharacterIndex].color = Color.green;
