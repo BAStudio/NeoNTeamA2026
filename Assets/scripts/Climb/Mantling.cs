@@ -16,11 +16,11 @@ public class Mantling : MonoBehaviour
     private bool canClimb = true;
     private bool isClimbing;
     private Vector3 climbDirection;
-    private PlayerMovement playerMovement;
+    private Movement playerMovement;
 
     private void Start()
         {
-        playerMovement = GetComponent<PlayerMovement>();
+        playerMovement = GetComponent<Movement>();
     }
 
     private void Update()
