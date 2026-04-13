@@ -1,13 +1,28 @@
 ﻿using UnityEngine;
+using UnityEngine.Events;
 
 public class Movement : MonoBehaviour
 {
     [SerializeField] private float _speed;
     private Rigidbody rb;
+
     private bool _isRunning = false;
+
+    private float h;
+    private float v;
 
     [SerializeField] private float _runSpeed = 25f;
     [SerializeField] private float _walkSpeed = 15f;
+
+    [SerializeField] private float _acceleration = 8f;
+    [SerializeField] private float _turnSpeedMultiplier = 2f;
+
+    [SerializeField] private UnityEvent IsWalking;
+    [SerializeField] private UnityEvent IsRunning;
+    [SerializeField] private UnityEvent IsIdle;
+
+    [SerializeField] private float _stopAudioDelay = 0.3f;
+    private float _noInputTimer;
 
     private bool _allowedToMove = true;
 
@@ -15,14 +30,10 @@ public class Movement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
-        // Subscribe ONCE
         NotePad.StopMovement += StopMovement;
         NotePad.ContinueMovement += ContinueMovement;
 
-        // Prevent tipping over
         rb.freezeRotation = true;
-
-        // Better collision for fast movement
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 
@@ -30,29 +41,77 @@ public class Movement : MonoBehaviour
     {
         if (!_allowedToMove)
         {
-            // Stop movement completely
             rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
 
         Move();
+
+        bool isMoving = (h != 0 || v != 0);
+        bool isRunning = Input.GetKey(KeyCode.LeftShift) && isMoving;
+
+        if (isMoving)
+        {
+            _noInputTimer = 0f;
+
+            if (isRunning)
+                Running();
+            else
+                Walking();
+        }
+        else
+        {
+            _noInputTimer += Time.fixedDeltaTime;
+
+            if (_noInputTimer >= _stopAudioDelay)
+                Idle();
+        }
     }
 
     private void Move()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        h = Input.GetAxis("Horizontal");
+        v = Input.GetAxis("Vertical");
 
-        Vector3 move = (v * transform.forward + h * transform.right).normalized;
+        Vector3 inputDir = (-v * transform.forward -h * transform.right).normalized;
 
-        // Sprint logic
         _isRunning = Input.GetKey(KeyCode.LeftShift);
-        _speed = _isRunning ? _runSpeed : _walkSpeed;
 
-        Vector3 targetVelocity = move * _speed;
+        float targetSpeed = _isRunning ? _runSpeed : _walkSpeed;
 
-        // ✅ THIS is the key line
-        rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
+        Vector3 currentVelocity = rb.linearVelocity;
+        Vector3 currentHorizontalVel = new Vector3(currentVelocity.x, 0, currentVelocity.z);
+
+        Vector3 desiredVelocity = inputDir * targetSpeed;
+
+        if (inputDir.sqrMagnitude > 0.01f)
+        {
+            float alignment = Vector3.Dot(currentHorizontalVel.normalized, inputDir);
+            alignment = Mathf.Clamp01((alignment + 1f) * 0.5f); // 0 = opposite, 1 = same dir
+
+            float dynamicAccel = _acceleration * Mathf.Lerp(_turnSpeedMultiplier, 1f, alignment);
+
+            currentHorizontalVel = Vector3.Lerp(
+                currentHorizontalVel,
+                desiredVelocity,
+                dynamicAccel * Time.fixedDeltaTime
+            );
+        }
+        else
+        {
+            // natural deceleration when no input
+            currentHorizontalVel = Vector3.Lerp(
+                currentHorizontalVel,
+                Vector3.zero,
+                _acceleration * Time.fixedDeltaTime
+            );
+        }
+
+        rb.linearVelocity = new Vector3(
+            currentHorizontalVel.x,
+            currentVelocity.y,
+            currentHorizontalVel.z
+        );
     }
 
     private void StopMovement()
@@ -63,5 +122,20 @@ public class Movement : MonoBehaviour
     private void ContinueMovement()
     {
         _allowedToMove = true;
+    }
+
+    private void Walking()
+    {
+        IsWalking?.Invoke();
+    }
+
+    private void Running()
+    {
+        IsRunning?.Invoke();
+    }
+
+    private void Idle()
+    {
+        IsIdle?.Invoke();
     }
 }
