@@ -26,8 +26,11 @@ public class Movement : MonoBehaviour
 
     private bool _allowedToMove = true;
 
+    PlayerStamina playerStamina;
+
     void Start()
     {
+        playerStamina = PlayerStamina.Instance;
         rb = GetComponent<Rigidbody>();
 
         NotePad.StopMovement += StopMovement;
@@ -54,7 +57,7 @@ public class Movement : MonoBehaviour
         {
             _noInputTimer = 0f;
 
-            if (isRunning)
+            if (isRunning && playerStamina.stamina > 0)
                 Running();
             else
                 Walking();
@@ -77,9 +80,20 @@ public class Movement : MonoBehaviour
 
         _isRunning = Input.GetKey(KeyCode.LeftShift);
 
-        float targetSpeed = _isRunning ? _runSpeed : _walkSpeed;
+        //float targetSpeed = _isRunning ? _runSpeed : _walkSpeed;
 
-        Vector3 currentVelocity = rb.linearVelocity;
+        float targetSpeed;
+
+        if (playerStamina.stamina > 0 && _isRunning)
+        {
+            targetSpeed = _runSpeed;
+        }
+        else
+        {
+            targetSpeed = _walkSpeed;
+        }
+
+            Vector3 currentVelocity = rb.linearVelocity;
         Vector3 currentHorizontalVel = new Vector3(currentVelocity.x, 0, currentVelocity.z);
 
         Vector3 desiredVelocity = inputDir * targetSpeed;
@@ -132,6 +146,7 @@ public class Movement : MonoBehaviour
     private void Running()
     {
         IsRunning?.Invoke();
+        playerStamina.ConsumeStamina(1f * Time.fixedDeltaTime);
     }
 
     private void Idle()

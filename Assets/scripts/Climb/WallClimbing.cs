@@ -55,7 +55,7 @@ public class WallClimbing : MonoBehaviour
 
     private void ClimbMovement()
     {
-        playerStamina.ConsumeStamina(2f * Time.deltaTime);
+        playerStamina.ConsumeStamina(0.5f * Time.deltaTime);
         float y = 0f;
         if (Input.GetKey(KeyCode.Space) && playerStamina.stamina > 0) y = climbSpeed;
         else y = -climbSpeed;

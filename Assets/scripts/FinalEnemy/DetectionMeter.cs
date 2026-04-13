@@ -18,19 +18,19 @@ public class DetectionMeter : MonoBehaviour
     /// <summary>
     /// Updates detection meter based on whether player is visible and current state
     /// </summary>
-    public void Update(bool playerVisible, AIStateManager.AIState currentState)
-    {
-        if (playerVisible)
-            currentDetection += detectionBuildSpeed * Time.deltaTime;
-        else
-        {
-            // Slower decay in Stalking state (enemy is determined)
-            float decayRate = (currentState == AIStateManager.AIState.Stalking) ? stalkingDecaySpeed : detectionDecaySpeed;
-            currentDetection -= decayRate * Time.deltaTime;
-        }
+    //public void Update(bool playerVisible, AIStateManager.AIState currentState)
+    //{
+    //    if (playerVisible)
+    //        currentDetection += detectionBuildSpeed * Time.deltaTime;
+    //    else
+    //    {
+    //        // Slower decay in Stalking state (enemy is determined)
+    //        float decayRate = (currentState == AIStateManager.AIState.Stalking) ? stalkingDecaySpeed : detectionDecaySpeed;
+    //        currentDetection -= decayRate * Time.deltaTime;
+    //    }
 
-        currentDetection = Mathf.Clamp(currentDetection, 0f, maxDetection);
-    }
+    //    currentDetection = Mathf.Clamp(currentDetection, 0f, maxDetection);
+    //}
 
     /// <summary>
     /// Adds detection from a signal or hearing

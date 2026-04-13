@@ -4,9 +4,6 @@
 TagManager:
   serializedVersion: 3
   tags: []
-  tags:
-  - mantling
-  - Camera
   layers:
   - Default
   - TransparentFX
@@ -18,6 +15,7 @@ TagManager:
   - 
   - cimb
   - Enemy
+  - Wall
   - 
   - 
   - 
