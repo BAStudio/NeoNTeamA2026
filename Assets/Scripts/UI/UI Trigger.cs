@@ -15,8 +15,8 @@ public class UITrigger : MonoBehaviour
 
     private float _lookAwayTimer = 0f;
 
-    public static event System.Action PlayerUITriggerEnter;
-    public static event System.Action PlayerUITriggerExit;
+    public static event System.Action <GameObject> PlayerUITriggerEnter;
+    public static event System.Action <GameObject> PlayerUITriggerExit;
 
     void Start()
     {
@@ -33,7 +33,7 @@ public class UITrigger : MonoBehaviour
         {
             if (hit.collider.CompareTag(_colliderTagName))
             {
-                PlayerUITriggerEnter?.Invoke();
+                PlayerUITriggerEnter?.Invoke(hit.collider.gameObject);
 
                 newFader = hit.collider.GetComponentInChildren<UIFader>();
 
@@ -43,7 +43,7 @@ public class UITrigger : MonoBehaviour
             }
             else
             {
-                PlayerUITriggerExit?.Invoke();
+                PlayerUITriggerExit?.Invoke(hit.collider.gameObject);
 
                 _lookAwayTimer += Time.deltaTime;
 
@@ -83,7 +83,7 @@ public class UITrigger : MonoBehaviour
         {
             Debug.Log("The player has entered the trigger area of: " + _colliderTagName);
 
-            PlayerUITriggerEnter?.Invoke();
+            PlayerUITriggerEnter?.Invoke(other.gameObject);
 
             other.GetComponentInChildren<UIFader>()?.GetFadeIn();
         }
@@ -104,7 +104,7 @@ public class UITrigger : MonoBehaviour
         {
             Debug.Log("The player has exited the trigger area of: " + _colliderTagName);
 
-            PlayerUITriggerExit?.Invoke();
+            PlayerUITriggerExit?.Invoke(other.gameObject);
 
             other.GetComponentInChildren<UIFader>()?.GetFadeOut();
         }

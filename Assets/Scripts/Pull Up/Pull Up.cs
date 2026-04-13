@@ -6,7 +6,7 @@ public class PullUp : MonoBehaviour
     [SerializeField] private Transform _playerHangingPoint;
 
     [SerializeField] private Transform _hangingPoint;
-
+        
     [SerializeField] private Rigidbody _player;
 
     [SerializeField] private Collider _playerCollider;
@@ -19,6 +19,11 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private UnityEvent HoldingUp;
 
+    // ✅ NEW (cooldown)
+    [SerializeField] private float _cooldown = 1.0f;
+
+    private float _nextPullUpTime;
+
     private bool _canPullUp;
 
     private bool _pullingUp;
@@ -28,6 +33,40 @@ public class PullUp : MonoBehaviour
     private Vector3 _startPosition;
 
     private float _progress;
+
+    private float _kinematicDelay = 0.1f;
+
+    private float _kinematicTimer;
+
+    private bool _isCurrentTarget = false;
+
+    private void OnEnable()
+    {
+        UITrigger.PlayerUITriggerEnter += OnEnter;
+        UITrigger.PlayerUITriggerExit += OnExit;
+    }
+
+    private void OnDisable()
+    {
+        UITrigger.PlayerUITriggerEnter -= OnEnter;
+        UITrigger.PlayerUITriggerExit -= OnExit;
+    }
+
+    private void OnEnter(GameObject obj)
+    {
+        if (obj == gameObject)
+        {
+            _isCurrentTarget = true;
+        }
+    }
+
+    private void OnExit(GameObject obj)
+    {
+        if (obj == gameObject)
+        {
+            _isCurrentTarget = false;
+        }
+    }
 
     private void Start()
     {
@@ -44,6 +83,12 @@ public class PullUp : MonoBehaviour
 
     private void Update()
     {
+        // ✅ changed to GetKeyDown (prevent spam)
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Release();
+        }
+
         if (_canPullUp)
         {
             StartPullingUp();
@@ -53,20 +98,19 @@ public class PullUp : MonoBehaviour
         {
             _progress += _pullUpSpeed * Time.deltaTime;
 
+            float easedProgress = Mathf.SmoothStep(0f, 1f, _progress);
+
             Vector3 newPosition = Vector3.Lerp(
                 _startPosition,
                 _hangingPoint.position,
-                _progress
+                easedProgress
             );
 
-            _playerHangingPoint.position = newPosition;
-
-            _player.transform.position = _playerHangingPoint.position;
+            // ✅ FIXED: use player position directly
+            _player.transform.position = newPosition;
 
             if (_progress >= 1f)
             {
-                _playerHangingPoint.position = _hangingPoint.position;
-
                 _player.transform.position = _hangingPoint.position;
 
                 if (!_hasHeldUp)
@@ -79,39 +123,53 @@ public class PullUp : MonoBehaviour
 
     public void CanPullUp()
     {
+        if (!_isCurrentTarget) return;
+
+        // ✅ NEW: block while hanging or pulling
+        if (_hasHeldUp || _pullingUp) return;
+
+        // ✅ NEW: cooldown check
+        if (Time.time < _nextPullUpTime) return;
+
         _canPullUp = true;
 
-        _hasHeldUp = false;
+        Debug.Log("Correct PullUp triggered on: " + gameObject.name);
     }
 
     private void StartPullingUp()
     {
+        _kinematicTimer += Time.deltaTime;
+
+        if (_kinematicTimer >= _kinematicDelay && !_player.isKinematic)
+        {
+            _player.linearVelocity = Vector3.zero;
+            _player.angularVelocity = Vector3.zero;
+
+            _player.isKinematic = true;
+        }
+
         _pullingUp = true;
 
         _canPullUp = false;
 
-        _startPosition = _playerHangingPoint.position;
+        // ✅ FIXED: correct start position
+        _startPosition = _player.transform.position;
 
         _progress = 0f;
 
         _player.linearVelocity = Vector3.zero;
-
         _player.angularVelocity = Vector3.zero;
 
-        _player.isKinematic = true;
+        _kinematicTimer = 0f;
     }
 
     private void FinishPullUp()
     {
         _pullingUp = false;
-
         _hasHeldUp = true;
 
         _player.linearVelocity = Vector3.zero;
-
         _player.angularVelocity = Vector3.zero;
-
-        _playerHangingPoint.position = _hangingPoint.position;
 
         _player.transform.position = _hangingPoint.position;
 
@@ -137,5 +195,23 @@ public class PullUp : MonoBehaviour
         _playerCollider.enabled = true;
 
         _player.isKinematic = false;
+
+        // reset state
+        _canPullUp = false;
+
+        _pullingUp = false;
+
+        _hasHeldUp = false;
+
+        _progress = 0f;
+        _kinematicTimer = 0f;
+
+        _player.linearVelocity = Vector3.zero;
+        _player.angularVelocity = Vector3.zero;
+
+        // ✅ NEW: start cooldown
+        _nextPullUpTime = Time.time + _cooldown;
+
+        Debug.Log("Pull-up released and reset");
     }
 }

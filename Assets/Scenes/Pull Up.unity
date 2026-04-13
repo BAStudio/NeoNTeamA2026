@@ -332,6 +332,7 @@ MonoBehaviour:
         m_CallState: 2
   _holdingKey: 0
   _holdingTime: 2
+  _interactionCooldown: 5
   _key: 101
 --- !u!114 &398045240
 MonoBehaviour:
@@ -355,6 +356,7 @@ MonoBehaviour:
   HoldingUp:
     m_PersistentCalls:
       m_Calls: []
+  _cooldown: 1
 --- !u!114 &398045241
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -475,6 +477,7 @@ MonoBehaviour:
   HoldingUp:
     m_PersistentCalls:
       m_Calls: []
+  _cooldown: 1
 --- !u!114 &610472970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -516,6 +519,7 @@ MonoBehaviour:
         m_CallState: 2
   _holdingKey: 0
   _holdingTime: 2
+  _interactionCooldown: 5
   _key: 101
 --- !u!65 &610472971
 BoxCollider:
@@ -965,7 +969,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!1 &867179035
 GameObject:
   m_ObjectHideFlags: 0
@@ -1161,7 +1169,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!114 &867179040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1488,7 +1500,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UITrigger
   _colliderIsTrigger: 0
   _colliderTagName: Pull Up Bar
-  _raycastDistance: 5
+  _raycastDistance: 1
   _fadeOutDelay: 2
 --- !u!1 &935266936
 GameObject:
@@ -1728,7 +1740,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!114 &1383136421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1989,7 +2005,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!1 &1487314911
 GameObject:
   m_ObjectHideFlags: 0
@@ -2185,7 +2205,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!114 &1487314916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2316,7 +2340,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 1
+  _lookAtPlayer: 0
+  _snap90Degrees: 1
+  _rotationSpeed: 10
+  _scaleForward: {x: 0.1, y: 1, z: 0.1}
+  _scaleSide: {x: 1, y: 0.1, z: 1}
 --- !u!225 &1668493834
 CanvasGroup:
   m_ObjectHideFlags: 0
