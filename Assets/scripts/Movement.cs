@@ -15,7 +15,7 @@ public class Movement : MonoBehaviour
 
     private PlayerStamina playerStamina;
 
-
+   
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
