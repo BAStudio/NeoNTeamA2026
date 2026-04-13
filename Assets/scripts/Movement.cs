@@ -13,10 +13,14 @@ public class Movement : MonoBehaviour
     private bool _allowedToMove = true;
 
 
+    private PlayerStamina playerStamina;
+
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        playerStamina = PlayerStamina.Instance;
         rb = gameObject.GetComponent<Rigidbody>();
     }
 
@@ -46,7 +50,15 @@ public class Movement : MonoBehaviour
 
         //zorgt ervoor als je left shift in klikt dat je sneller gaat (sprinten)
         _isRunning = Input.GetKey(KeyCode.LeftShift);
-        _speed = _isRunning ? _runSpeed : _walkSpeed;  
+        if (_isRunning && playerStamina.stamina > 0)
+        {
+            playerStamina.ConsumeStamina(1f * Time.deltaTime);
+            _speed = _runSpeed;
+        }
+        else
+        {
+            _speed = _walkSpeed;
+        }
     }
 
     private void StopMovement()

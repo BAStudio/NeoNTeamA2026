@@ -12,20 +12,23 @@ public class WallClimbing : MonoBehaviour
     private bool wasPressing;
     private Rigidbody rb;
 
+    private PlayerStamina playerStamina;
+
     private void Start()
     {
+        playerStamina = PlayerStamina.Instance;
         rb = GetComponent<Rigidbody>();
     }
 
     private void Update()
     {
         DetectWall();
-        if (isClimbing) ClimbMovement();
+        if (isClimbing && playerStamina.stamina > 0) ClimbMovement();
     }
 
     private void DetectWall()
     {
-        bool pressing = Input.GetKey(KeyCode.Space);
+        bool pressing = Input.GetKey(KeyCode.Space) && playerStamina.stamina > 0;
 
         Vector3 origin = transform.position + Vector3.down * rayCastPosition;
         if (Physics.Raycast(origin, transform.forward, out RaycastHit hit, detectDistance, climbLayer))
@@ -52,8 +55,9 @@ public class WallClimbing : MonoBehaviour
 
     private void ClimbMovement()
     {
+        playerStamina.ConsumeStamina(2f * Time.deltaTime);
         float y = 0f;
-        if (Input.GetKey(KeyCode.Space)) y = climbSpeed;
+        if (Input.GetKey(KeyCode.Space) && playerStamina.stamina > 0) y = climbSpeed;
         else y = -climbSpeed;
         rb.linearVelocity = new Vector3(0, y, 0);
     }
