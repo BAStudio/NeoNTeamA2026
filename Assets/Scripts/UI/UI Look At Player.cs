@@ -9,6 +9,9 @@ public class UILookAtPlayer : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float _rotationSpeed = 10f;
 
+    [Header("Scale Settings")]
+    [SerializeField] private bool _useScaling;
+
     [Header("Scale Presets")]
     [SerializeField] private Vector3 _scaleForward = new Vector3(0.1f, 1f, 0.1f);
     [SerializeField] private Vector3 _scaleSide = new Vector3(1f, 0.1f, 1f);
@@ -22,7 +25,11 @@ public class UILookAtPlayer : MonoBehaviour
         if (_snap90Degrees)
         {
             SnapLookAtPlayer();
-            ApplyScale();
+
+            if (_useScaling)
+            {
+                ApplyScale();
+            }
         }
         else if (_lookAtPlayer)
         {
@@ -67,20 +74,17 @@ public class UILookAtPlayer : MonoBehaviour
         );
     }
 
-    // 🔥 THIS IS THE KEY PART
     private void ApplyScale()
     {
         float snapped = Mathf.Round(_currentYRotation / 90f) * 90f;
 
-        // Forward / Back
         if (snapped == 0f || Mathf.Abs(snapped) == 180f)
         {
             transform.localScale = _scaleForward;
         }
-        else // Left / Right
+        else
         {
             transform.localScale = _scaleSide;
         }
     }
 }
-

@@ -19,7 +19,6 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private UnityEvent HoldingUp;
 
-    // ✅ NEW (cooldown)
     [SerializeField] private float _cooldown = 1.0f;
 
     private float _nextPullUpTime;

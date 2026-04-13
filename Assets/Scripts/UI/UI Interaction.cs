@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 public class UIInteraction : MonoBehaviour
 {
@@ -12,6 +13,12 @@ public class UIInteraction : MonoBehaviour
     [SerializeField] private float _interactionCooldown = 1f;
 
     [SerializeField] private KeyCode _key;
+
+    [SerializeField] private Slider _interactionSlider;
+
+    [SerializeField] private Image _sliderFill;
+
+    [SerializeField] private float _fadeSpeed = 2f;
 
     public static event System.Action InteractionUIFadeOut;
 
@@ -29,6 +36,12 @@ public class UIInteraction : MonoBehaviour
 
     private bool _allowedToInteract;
 
+    private float _sliderTarget;
+
+    private float _targetAlpha;
+
+    private bool _isFadingOut;
+
     void Start()
     {
         _playerUITriggerEnter = false;
@@ -40,6 +53,20 @@ public class UIInteraction : MonoBehaviour
         _keyHasBeenPressed = false;
 
         _keyHasBeenHeld = false;
+
+        _interactionSlider.value = 0f;
+
+        _sliderTarget = 0f;
+
+        if (_sliderFill != null)
+        {
+            Color c = _sliderFill.color;
+            c.a = 0f;
+            _sliderFill.color = c;
+        }
+
+        _targetAlpha = 0f;
+        _isFadingOut = false;
     }
 
     private void OnEnable()
@@ -77,23 +104,33 @@ public class UIInteraction : MonoBehaviour
         {
             _holdingTimer += Time.deltaTime;
 
+            _sliderTarget = _holdingTimer / _holdingTime;
+
+            _targetAlpha = 1f;
+
             if (_holdingTimer >= _holdingTime && !_keyHeld)
             {
                 HoldingKey();
 
                 _keyHeld = true;
 
+                _isFadingOut = true;
+
                 Debug.Log("Player is holding: " + _key);
             }
         }
         else
         {
-            _holdingTimer = 0f;
+            if (!_isFadingOut)
+            {
+                _holdingTimer = 0f;
+                _sliderTarget = 0f;
+                _targetAlpha = 0f;
+            }
 
             _keyHeld = false;
         }
 
-        // ✅ FIXED cooldown logic
         if (_interactionCooldownTimer > 0f)
         {
             _interactionCooldownTimer -= Time.deltaTime;
@@ -105,6 +142,27 @@ public class UIInteraction : MonoBehaviour
                 Debug.Log("The interaction cooldown has ended. The player can interact again.");
             }
         }
+
+        _interactionSlider.value = Mathf.Lerp(_interactionSlider.value, _sliderTarget, Time.deltaTime * 10f);
+
+        if (_sliderFill != null)
+        {
+            float currentAlpha = _sliderFill.color.a;
+            float newAlpha = Mathf.MoveTowards(currentAlpha, _targetAlpha, _fadeSpeed * Time.deltaTime);
+
+            Color c = _sliderFill.color;
+            c.a = newAlpha;
+            _sliderFill.color = c;
+
+            if (_isFadingOut && newAlpha <= 0f)
+            {
+                _isFadingOut = false;
+
+                _sliderTarget = 0f;
+                _interactionSlider.value = 0f;
+                _holdingTimer = 0f;
+            }
+        }
     }
 
     private void PressingKey()
@@ -113,7 +171,6 @@ public class UIInteraction : MonoBehaviour
 
         _keyHasBeenPressed = true;
 
-        // ✅ start cooldown ONCE
         _allowedToInteract = false;
 
         _interactionCooldownTimer = _interactionCooldown;
@@ -127,10 +184,11 @@ public class UIInteraction : MonoBehaviour
 
         _keyHasBeenHeld = true;
 
-        // ✅ start cooldown ONCE
         _allowedToInteract = false;
 
         _interactionCooldownTimer = _interactionCooldown;
+
+        _targetAlpha = 0f;
 
         Debug.Log("Successfully executed holding action with input: " + _key);
     }
