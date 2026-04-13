@@ -4,25 +4,43 @@ using UnityEngine.Rendering;
 
 public class Movement : MonoBehaviour
 {
-    private float _speed = 30f;
+    [SerializeField] private float _speed = 30f;
     private Rigidbody rb;
     private bool _isRunning = false;
-    private float _runSpeed = 50f;
-    private float _walkSpeed = 30f;
+    [SerializeField]private float _runSpeed = 50f;
+    [SerializeField] private float _walkSpeed = 30f;
+
+    private bool _allowedToMove = true;
+
+
+    private PlayerStamina playerStamina;
 
    
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        playerStamina = PlayerStamina.Instance;
         rb = gameObject.GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        Move();
-        
+        NotePad.StopMovement += StopMovement;
+
+        NotePad.ContinueMovement += ContinueMovement;
+
+        if(_allowedToMove)
+        {
+            Move();
+        }
+
+        if (!_allowedToMove)
+        {
+            return;
+        }
+
     }
 
     private void Move()
@@ -32,7 +50,24 @@ public class Movement : MonoBehaviour
 
         //zorgt ervoor als je left shift in klikt dat je sneller gaat (sprinten)
         _isRunning = Input.GetKey(KeyCode.LeftShift);
-        _speed = _isRunning ? _runSpeed : _walkSpeed;
-        
+        if (_isRunning && playerStamina.stamina > 0)
+        {
+            playerStamina.ConsumeStamina(1f * Time.deltaTime);
+            _speed = _runSpeed;
+        }
+        else
+        {
+            _speed = _walkSpeed;
+        }
+    }
+
+    private void StopMovement()
+    {
+        _allowedToMove = false;
+    }
+
+    private void ContinueMovement()
+    {
+        _allowedToMove = true;
     }
 }
