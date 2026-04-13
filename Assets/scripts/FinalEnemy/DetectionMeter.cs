@@ -18,7 +18,7 @@ public class DetectionMeter : MonoBehaviour
     /// <summary>
     /// Updates detection meter based on whether player is visible and current state
     /// </summary>
-    public void Update(bool playerVisible, AIStateManager.AIState currentState)
+    public void UpdateDetection(bool playerVisible, AIStateManager.AIState currentState)
     {
         if (playerVisible)
             currentDetection += detectionBuildSpeed * Time.deltaTime;

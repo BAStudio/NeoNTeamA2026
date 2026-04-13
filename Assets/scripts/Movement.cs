@@ -4,11 +4,11 @@ using UnityEngine.Rendering;
 
 public class Movement : MonoBehaviour
 {
-    [SerializeField] private float _speed = 30f;
+    [SerializeField] private float _speed = 2f;
     private Rigidbody rb;
     private bool _isRunning = false;
-    [SerializeField]private float _runSpeed = 50f;
-    [SerializeField] private float _walkSpeed = 30f;
+    [SerializeField]private float _runSpeed = 5f;
+    [SerializeField] private float _walkSpeed = 3f;
 
     private bool _allowedToMove = true;
 
