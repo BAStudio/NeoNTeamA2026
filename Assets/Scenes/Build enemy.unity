@@ -8630,6 +8630,18 @@ PrefabInstance:
       propertyPath: masterGrid
       value: 
       objectReference: {fileID: 1695419899}
+    - target: {fileID: 7351079564340287380, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: verboseLogs
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351079564340287380, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: enableVision
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7351079564340287380, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: showOnScreenDebug
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8164634526976707678, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
       propertyPath: damageAmount
       value: 100
