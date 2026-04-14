@@ -183,6 +183,30 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5057008245991307861, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: masterGrid
+      value: 
+      objectReference: {fileID: 2095961826}
+    - target: {fileID: 5670052995042755164, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: detectionDecaySpeed
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350463052260270597, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: alertSpeed
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350463052260270597, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: chaseSpeed
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350463052260270597, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: rotationSpeed
+      value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 6350463052260270597, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: movementSmoothTime
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 7147160411616086583, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
       propertyPath: m_Name
       value: Enemy
@@ -191,6 +215,18 @@ PrefabInstance:
       propertyPath: masterGrid
       value: 
       objectReference: {fileID: 2095961826}
+    - target: {fileID: 8164634526976707678, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: damageAmount
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 8288897497771149516, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: hearingRadius
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8288897497771149516, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: hearingDetectionBoost
+      value: 18
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -555,7 +591,7 @@ MonoBehaviour:
   wallLayer:
     serializedVersion: 2
     m_Bits: 128
-  showNodes: 1
+  showNodes: 0
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!4 &2095961827
 Transform:
