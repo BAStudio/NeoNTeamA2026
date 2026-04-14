@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/YouWIN.unity
     guid: 5114f6c34e7eee8498c055f6f39e7c51
+  - enabled: 1
+    path: Assets/Scenes/Build enemy.unity
+    guid: ae516e7347ba8b645b556570c002fb13
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
