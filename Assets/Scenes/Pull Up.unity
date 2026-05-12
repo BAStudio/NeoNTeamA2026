@@ -2630,7 +2630,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e823771cabdb5243a2b8fb3ee08e400, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UILookAtPlayer
-  _lookAtPlayer: 0
+  _lookAtPlayer: 1
   _snap90Degrees: 1
   _rotationSpeed: 10
   _useScaling: 1
