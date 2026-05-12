@@ -10,39 +10,23 @@ public class CameraPoint : MonoBehaviour
     [SerializeField] private Vector3 rotation;
     [SerializeField] private GameObject panel;
     [SerializeField] private bool isOnCameraPoint = false;
-    [SerializeField] private bool isCameraPointActive = true;
     [SerializeField] private KeyCode activationKey = KeyCode.G;
+    private bool ifHacked = false;
+    hacking hacking;
+
 
     private void Start()
     {
         //button.onClick.AddListener(OnButtonClick);
+        hacking = GetComponent<hacking>();
+        hacking.OnCameraPointFalse += SartHacking;
     }
 
-    private void Update()
-    {
-
-        if (Input.GetKeyDown(activationKey))
-        {
-            if (isCameraPointActive == true)
-            {
-                isCameraPointActive = false;
-                Debug.Log("Camera Point Deactivated: " + gameObject.name);
-            }
-
-            else if (isCameraPointActive == false)
-            {
-                isCameraPointActive = true;
-                Debug.Log("Camera Point Activated: " + gameObject.name);
-            }
-        }
-
-
-    }
 
     private void OnTriggerStay()
     {
         Debug.Log("Trigger Entered: " + gameObject.name);
-        if (CompareTag("Camera") && isCameraPointActive == false)
+        if (CompareTag("Camera")  && ifHacked == true)
         {
             isOnCameraPoint = true;
             if (isOnCameraPoint == true)
@@ -54,14 +38,7 @@ public class CameraPoint : MonoBehaviour
                 panel.SetActive(false);
             }
         }
-        if (CompareTag("Camera") && isCameraPointActive == true)
-        {
-            if (isCameraPointActive == true)
-            {
-                panel.SetActive(false);
-            }
-
-        }
+ 
     }
     private void OnTriggerExit()
     {
@@ -89,4 +66,11 @@ public class CameraPoint : MonoBehaviour
     {
         return Quaternion.Euler(rotation);
     }
+
+    void SartHacking()
+    {
+        ifHacked = true;
+
+    }
+
 }

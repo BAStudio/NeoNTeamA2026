@@ -1,19 +1,23 @@
-using NUnit.Framework;
+
+
 using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
-using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
+
 
 public class hacking : MonoBehaviour
 {
     List<char> codeThatNeedsToBehacked = new List<char>();
     List<char> userInput = new List<char>();
 
-    [SerializeField] List<TextMeshProUGUI> textMeshProUGUIs = new List<TextMeshProUGUI>();
+    public Action OnCameraPointFalse;
 
+    [SerializeField] List<TextMeshProUGUI> textMeshProUGUIs = new List<TextMeshProUGUI>();
+    [SerializeField] private GameObject text;
+    
     char currentNeededCharacter;
 
     int currentCharacterIndex = 0;
@@ -25,11 +29,17 @@ public class hacking : MonoBehaviour
     string prefKey;
     char prefChar;
 
+    private void Start()
+    {
+        text.SetActive(false);
+    }
+
     void Update()
     {
+
         CheckCurrentInput();
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Input.GetKeyDown(KeyCode.G))
         {
             ResetCode();
         }
@@ -37,16 +47,17 @@ public class hacking : MonoBehaviour
 
     void ResetCode()
     {
+        text.SetActive(true);
         codeCracked = true;
         codeThatNeedsToBehacked.Clear();
         finalCharacterIndex = 0;
         currentCharacterIndex = 0;
         for (int i = 0; i < textMeshProUGUIs.Count; i++)
         {
-            char currentCharacter = (char)('a' + Random.Range(0, 26));
+            char currentCharacter = (char)('a' + UnityEngine.Random.Range(0, 26));
             while (currentCharacter == prefChar)
             {
-                currentCharacter = (char)('a' + Random.Range(0, 26));
+                currentCharacter = (char)('a' + UnityEngine.Random.Range(0, 26));
             }
             prefChar = currentCharacter;
             codeThatNeedsToBehacked.Add(currentCharacter);
@@ -78,6 +89,7 @@ public class hacking : MonoBehaviour
                     {
                         codeCracked = true;
                         Debug.Log("you win");
+                        OnCameraPointFalse?.Invoke();
                         buttonPress = false;
                     }
                     else
@@ -90,5 +102,10 @@ public class hacking : MonoBehaviour
             }
         });
     }
-   
+
+    void SartHacking()
+    {
+
+    }
+
 }

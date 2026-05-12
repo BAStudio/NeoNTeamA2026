@@ -2606,6 +2606,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2137166508}
   - component: {fileID: 2137166509}
+  - component: {fileID: 2137166510}
   m_Layer: 0
   m_Name: CameraPointsManager
   m_TagString: Untagged
@@ -2657,6 +2658,19 @@ MonoBehaviour:
   maxDistance: 20
   cameraPlace: {fileID: 1033807756}
   firstPersonCamera: {fileID: 1461197502}
+--- !u!114 &2137166510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2137166507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afc4acc4e584d0e478ba477ccfa33bc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::hacking
+  textMeshProUGUIs: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
