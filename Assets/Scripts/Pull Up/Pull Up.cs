@@ -69,6 +69,8 @@ public class PullUp : MonoBehaviour
 
     private void Start()
     {
+        PullUpMinigame.DropDown += Release;
+
         _canPullUp = false;
 
         _pullingUp = false;
