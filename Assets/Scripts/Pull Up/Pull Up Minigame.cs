@@ -20,6 +20,8 @@ public class PullUpMinigame : MonoBehaviour
 
     [SerializeField] private float _fadeSpeed = 2f;
 
+    [SerializeField] private float _forceIncreaseRate = 0.5f; // NEW
+
     public static event System.Action DropDown;
 
     private bool _minigameActive;
@@ -30,12 +32,11 @@ public class PullUpMinigame : MonoBehaviour
 
     private bool _failed;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private float _currentForceMultiplier = 1f; // NEW
+
     void Start()
     {
         _minigameActive = false;
-
-        //Debug.Log("Mouse Position at Start: " + _gameCursor.transform.position.y);
 
         if (_fadeImage != null)
         {
@@ -47,7 +48,6 @@ public class PullUpMinigame : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Y))
@@ -58,8 +58,11 @@ public class PullUpMinigame : MonoBehaviour
         }
 
         if (_minigameActive)
-        {    
-            _playerCamera.AddXRotation(_downwardForce * Time.deltaTime);
+        {
+            // NEW: gradually increase difficulty
+            _currentForceMultiplier += _forceIncreaseRate * Time.deltaTime;
+
+            _playerCamera.AddXRotation(_downwardForce * _currentForceMultiplier * Time.deltaTime);
 
             float currentRotation = _playerCamera.GetXRotation();
 
@@ -95,15 +98,29 @@ public class PullUpMinigame : MonoBehaviour
                 }
             }
         }
+        else
+        {
+            // fade back to normal when minigame is NOT active
+            if (_fadeImage != null)
+            {
+                Color c = _fadeImage.color;
+
+                c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
+
+                _fadeImage.color = c;
+            }
+        }
     }
 
-    private void HoldUpMinigame()
+    public void HoldUpMinigame()
     {
         _minigameActive = true;
 
         _failed = false;
 
         _failTimer = 0f;
+
+        _currentForceMultiplier = 1f; // reset difficulty
     }
 
     private void StopMinigame()

@@ -15,8 +15,10 @@ public class UITrigger : MonoBehaviour
 
     private float _lookAwayTimer = 0f;
 
-    public static event System.Action <GameObject> PlayerUITriggerEnter;
-    public static event System.Action <GameObject> PlayerUITriggerExit;
+    private GameObject _currentLookObject;
+
+    public static event System.Action<GameObject> PlayerUITriggerEnter;
+    public static event System.Action<GameObject> PlayerUITriggerExit;
 
     void Start()
     {
@@ -29,13 +31,15 @@ public class UITrigger : MonoBehaviour
 
         RaycastHit hit;
 
+        GameObject hitObject = null;
+
         if (Physics.Raycast(transform.position, Camera.main.transform.forward, out hit, _raycastDistance) && !_colliderIsTrigger)
         {
             if (hit.collider.CompareTag(_colliderTagName))
             {
-                PlayerUITriggerEnter?.Invoke(hit.collider.gameObject);
+                hitObject = hit.collider.gameObject;
 
-                newFader = hit.collider.GetComponentInChildren<UIFader>();
+                newFader = hitObject.GetComponentInChildren<UIFader>();
 
                 _lookAwayTimer = 0f;
 
@@ -43,7 +47,12 @@ public class UITrigger : MonoBehaviour
             }
             else
             {
-                PlayerUITriggerExit?.Invoke(hit.collider.gameObject);
+                if (_currentLookObject != null)
+                {
+                    PlayerUITriggerExit?.Invoke(_currentLookObject);
+
+                    _currentLookObject = null;
+                }
 
                 _lookAwayTimer += Time.deltaTime;
 
@@ -52,7 +61,29 @@ public class UITrigger : MonoBehaviour
         }
         else
         {
-            _lookAwayTimer += Time.deltaTime; 
+            if (_currentLookObject != null)
+            {
+                PlayerUITriggerExit?.Invoke(_currentLookObject);
+
+                _currentLookObject = null;
+            }
+
+            _lookAwayTimer += Time.deltaTime;
+        }
+
+        if (hitObject != _currentLookObject)
+        {
+            if (_currentLookObject != null)
+            {
+                PlayerUITriggerExit?.Invoke(_currentLookObject);
+            }
+
+            if (hitObject != null)
+            {
+                PlayerUITriggerEnter?.Invoke(hitObject);
+            }
+
+            _currentLookObject = hitObject;
         }
 
         if (newFader != _currentUIFader)
@@ -73,6 +104,7 @@ public class UITrigger : MonoBehaviour
         if (_currentUIFader != null && newFader == null && _lookAwayTimer >= _fadeOutDelay)
         {
             _currentUIFader.GetFadeOut();
+
             _currentUIFader = null;
         }
     }

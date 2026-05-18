@@ -85,10 +85,10 @@ public class PullUp : MonoBehaviour
     private void Update()
     {
         // ✅ changed to GetKeyDown (prevent spam)
-        if (Input.GetKeyDown(KeyCode.Space))
+        /*if (Input.GetKeyDown(KeyCode.Space))
         {
             Release();
-        }
+        }*/
 
         if (_canPullUp)
         {
