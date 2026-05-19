@@ -91,6 +91,7 @@ public class hacking : MonoBehaviour
                         Debug.Log("you win");
                         OnCameraPointFalse?.Invoke();
                         buttonPress = false;
+                        text.SetActive(false);
                     }
                     else
                     {
