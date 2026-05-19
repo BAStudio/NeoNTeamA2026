@@ -1023,8 +1023,8 @@ MonoBehaviour:
   _fadeImage: {fileID: 2126733962}
   _downwardForce: 25
   _dangerZone: 60
-  _failTime: 1
-  _fadeSpeed: 3
+  _failTime: 0.5
+  _fadeSpeed: 0.5
   _forceIncreaseRate: 0.5
 --- !u!1 &581656205
 GameObject:
@@ -3822,8 +3822,8 @@ MonoBehaviour:
   _fadeImage: {fileID: 2126733962}
   _downwardForce: 25
   _dangerZone: 60
-  _failTime: 1
-  _fadeSpeed: 3
+  _failTime: 0.5
+  _fadeSpeed: 0.5
   _forceIncreaseRate: 0.5
 --- !u!114 &1827919651
 MonoBehaviour:
@@ -4736,8 +4736,8 @@ MonoBehaviour:
   _fadeImage: {fileID: 2126733962}
   _downwardForce: 25
   _dangerZone: 60
-  _failTime: 1
-  _fadeSpeed: 3
+  _failTime: 0.5
+  _fadeSpeed: 0.5
   _forceIncreaseRate: 0.5
 --- !u!114 &1958459753
 MonoBehaviour:

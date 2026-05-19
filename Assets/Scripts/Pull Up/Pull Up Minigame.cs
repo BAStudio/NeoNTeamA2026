@@ -74,7 +74,7 @@ public class PullUpMinigame : MonoBehaviour
                 {
                     Color c = _fadeImage.color;
 
-                    c.a = Mathf.Lerp(c.a, 0.7f, _fadeSpeed * Time.deltaTime);
+                    c.a = Mathf.Lerp(c.a, 8f, _fadeSpeed * Time.deltaTime);
 
                     _fadeImage.color = c;
                 }
