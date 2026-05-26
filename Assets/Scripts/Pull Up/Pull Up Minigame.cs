@@ -5,15 +5,19 @@ using TMPro;
 
 public class PullUpMinigame : MonoBehaviour
 {
+    [SerializeField] private UnityEngine.Rendering.Volume _postProcessVolume;
+
     [SerializeField] private PlayerCamera _playerCamera;
-
-    //[SerializeField] private float _mouseY;
-
-    //[SerializeField] private Image _gameCursor;
 
     [SerializeField] private Image _fadeImage;
 
     [SerializeField] private TMP_Text _fadeText;
+
+    [SerializeField] private Transform _textTransform;
+
+    [SerializeField] private AudioSource _audioSource;
+
+    [SerializeField] private AudioClip _startClip;
 
     [SerializeField] private float _downwardForce = 15f;
 
@@ -27,11 +31,22 @@ public class PullUpMinigame : MonoBehaviour
 
     [SerializeField] private float _startTextFadeSpeed = 8f;
 
+    [SerializeField] private float _shakeStartPoint = 65f;
+
+    [SerializeField] private float _maxShakeAmount = 15f;
+
+    [SerializeField] private float _audioFadeSpeed = 1f;
+
+    [Header("DOF SETTINGS")] // NEW
+    [SerializeField] private float _maxBlurFocusDistance = 10f;
+
+    [SerializeField] private float _minBlurFocusDistance = 0.5f;
+
+    [SerializeField] private float _postFailLingerTime = 2f;
+
     public static event System.Action DropDown;
 
     private bool _minigameActive;
-
-    private Vector3 _mousePosition;
 
     private float _failTimer;
 
@@ -41,6 +56,10 @@ public class PullUpMinigame : MonoBehaviour
 
     private bool _showStartText;
 
+    private float _postFailTimer;
+
+    private UnityEngine.Rendering.Universal.DepthOfField _dof;
+
     void Start()
     {
         _minigameActive = false;
@@ -48,19 +67,24 @@ public class PullUpMinigame : MonoBehaviour
         if (_fadeImage != null)
         {
             Color c = _fadeImage.color;
-
             c.a = 0f;
-
             _fadeImage.color = c;
         }
 
         if (_fadeText != null)
         {
             Color c = _fadeText.color;
-
             c.a = 0f;
-
             _fadeText.color = c;
+        }
+
+        if (_postProcessVolume != null && _postProcessVolume.profile.TryGet(out _dof))
+        {
+        }
+
+        if (_dof != null)
+        {
+            _dof.focusDistance.value = _maxBlurFocusDistance;
         }
     }
 
@@ -69,43 +93,89 @@ public class PullUpMinigame : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Y))
         {
             HoldUpMinigame();
-
             Debug.Log("Minigame Active");
         }
 
         if (_minigameActive)
         {
-            // gradually increase difficulty
             _currentForceMultiplier += _forceIncreaseRate * Time.deltaTime;
 
             _playerCamera.AddXRotation(_downwardForce * _currentForceMultiplier * Time.deltaTime);
 
             float currentRotation = _playerCamera.GetXRotation();
 
-            // START TEXT FADE IN + OUT
-            if (_showStartText && _fadeText != null)
+            // ---------------- TEXT ----------------
+            if (_fadeText != null)
             {
-                Color c = _fadeText.color;
-
-                // Fade in quickly
-                if (c.a < 0.95f)
+                if (currentRotation > _shakeStartPoint)
                 {
+                    Color c = _fadeText.color;
                     c.a = Mathf.Lerp(c.a, 1f, _startTextFadeSpeed * Time.deltaTime);
+                    _fadeText.color = c;
                 }
-                // Then slowly fade out
                 else
                 {
-                    c.a = Mathf.Lerp(c.a, 0f, (_fadeSpeed * 0.35f) * Time.deltaTime);
-
-                    if (c.a <= 0.05f)
-                    {
-                        _showStartText = false;
-                    }
+                    Color c = _fadeText.color;
+                    c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
+                    _fadeText.color = c;
                 }
-
-                _fadeText.color = c;
             }
 
+            // ---------------- SHAKE ----------------
+            if (currentRotation > _shakeStartPoint)
+            {
+                float t = Mathf.InverseLerp(_shakeStartPoint, _dangerZone, currentRotation);
+
+                if (_textTransform != null)
+                {
+                    Vector3 basePos = _textTransform.localPosition;
+
+                    float shakeAmount = Mathf.Lerp(0f, _maxShakeAmount, t);
+
+                    Vector3 shakeOffset = new Vector3(
+                        Random.Range(-shakeAmount, shakeAmount),
+                        Random.Range(-shakeAmount, shakeAmount),
+                        0f
+                    );
+
+                    _textTransform.localPosition = basePos + shakeOffset;
+                }
+            }
+            else
+            {
+                if (_textTransform != null)
+                {
+                    _textTransform.localPosition =
+                        Vector3.Lerp(_textTransform.localPosition, Vector3.zero, Time.deltaTime * 10f);
+                }
+            }
+
+            // ---------------- DOF (FOCUS DISTANCE BLUR) ----------------
+            if (_dof != null)
+            {
+                float t = Mathf.InverseLerp(_shakeStartPoint, _dangerZone, currentRotation);
+
+                float targetFocus = Mathf.Lerp(
+                    _maxBlurFocusDistance,
+                    _minBlurFocusDistance,
+                    t
+                );
+
+                // linger after fail
+                if (_postFailTimer > 0f)
+                {
+                    float linger = _postFailTimer / _postFailLingerTime;
+                    targetFocus = Mathf.Min(targetFocus, Mathf.Lerp(_maxBlurFocusDistance, _minBlurFocusDistance, linger));
+                }
+
+                _dof.focusDistance.value =
+                    Mathf.Lerp(_dof.focusDistance.value, targetFocus, Time.deltaTime * 3f);
+
+                _dof.aperture.value =
+                    Mathf.Lerp(_dof.aperture.value, 16f, Time.deltaTime * 3f);
+            }
+
+            // ---------------- DANGER ----------------
             if (currentRotation >= _dangerZone)
             {
                 _failTimer += Time.deltaTime;
@@ -113,20 +183,8 @@ public class PullUpMinigame : MonoBehaviour
                 if (_fadeImage != null)
                 {
                     Color c = _fadeImage.color;
-
-                    c.a = Mathf.Lerp(c.a, 8f, _fadeSpeed * Time.deltaTime);
-
-                    _fadeImage.color = c;
-                }
-
-                // Fade text in while in danger zone
-                if (_fadeText != null)
-                {
-                    Color c = _fadeText.color;
-
                     c.a = Mathf.Lerp(c.a, 1f, _fadeSpeed * Time.deltaTime);
-
-                    _fadeText.color = c;
+                    _fadeImage.color = c;
                 }
 
                 if (_failTimer >= _failTime)
@@ -141,42 +199,44 @@ public class PullUpMinigame : MonoBehaviour
                 if (_fadeImage != null)
                 {
                     Color c = _fadeImage.color;
-
                     c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
-
                     _fadeImage.color = c;
                 }
+            }
 
-                // Slowly fade out text normally
-                if (_fadeText != null && !_showStartText && currentRotation < _dangerZone)
-                {
-                    Color c = _fadeText.color;
+            // ---------------- AUDIO ----------------
+            if (_audioSource != null)
+            {
+                _audioSource.volume =
+                    Mathf.Lerp(_audioSource.volume, 0f, _audioFadeSpeed * Time.deltaTime);
+            }
 
-                    c.a = Mathf.Lerp(c.a, 0f, (_fadeSpeed * 0.35f) * Time.deltaTime);
-
-                    _fadeText.color = c;
-                }
+            // ---------------- POST FAIL TIMER ----------------
+            if (_postFailTimer > 0f)
+            {
+                _postFailTimer -= Time.deltaTime;
             }
         }
         else
         {
-            // fade back to normal when minigame is NOT active
             if (_fadeImage != null)
             {
                 Color c = _fadeImage.color;
-
                 c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
-
                 _fadeImage.color = c;
             }
 
             if (_fadeText != null)
             {
                 Color c = _fadeText.color;
-
                 c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
-
                 _fadeText.color = c;
+            }
+
+            if (_dof != null)
+            {
+                _dof.focusDistance.value =
+                    Mathf.Lerp(_dof.focusDistance.value, _maxBlurFocusDistance, Time.deltaTime * 2f);
             }
         }
     }
@@ -186,28 +246,30 @@ public class PullUpMinigame : MonoBehaviour
         _minigameActive = true;
 
         _failed = false;
-
         _failTimer = 0f;
-
         _currentForceMultiplier = 1f;
-
         _showStartText = true;
 
-        // Reset text alpha so it can fade in again
+        _postFailTimer = 0f;
+
         if (_fadeText != null)
         {
             Color c = _fadeText.color;
-
             c.a = 0f;
-
             _fadeText.color = c;
+        }
+
+        if (_audioSource != null && _startClip != null)
+        {
+            _audioSource.clip = _startClip;
+            _audioSource.volume = 1f;
+            _audioSource.Play();
         }
     }
 
     private void StopMinigame()
     {
         _minigameActive = false;
-
         _failTimer = 0f;
     }
 
@@ -219,6 +281,8 @@ public class PullUpMinigame : MonoBehaviour
         _failed = true;
 
         StopMinigame();
+
+        _postFailTimer = _postFailLingerTime;
 
         Debug.Log("FAILED MINIGAME");
 
