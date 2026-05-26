@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using TMPro;
 
 public class PullUpMinigame : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class PullUpMinigame : MonoBehaviour
 
     [SerializeField] private Image _fadeImage;
 
+    [SerializeField] private TMP_Text _fadeText;
+
     [SerializeField] private float _downwardForce = 15f;
 
     [SerializeField] private float _dangerZone = 60f;
@@ -20,7 +23,9 @@ public class PullUpMinigame : MonoBehaviour
 
     [SerializeField] private float _fadeSpeed = 2f;
 
-    [SerializeField] private float _forceIncreaseRate = 0.5f; // NEW
+    [SerializeField] private float _forceIncreaseRate = 0.5f;
+
+    [SerializeField] private float _startTextFadeSpeed = 8f;
 
     public static event System.Action DropDown;
 
@@ -32,7 +37,9 @@ public class PullUpMinigame : MonoBehaviour
 
     private bool _failed;
 
-    private float _currentForceMultiplier = 1f; // NEW
+    private float _currentForceMultiplier = 1f;
+
+    private bool _showStartText;
 
     void Start()
     {
@@ -45,6 +52,15 @@ public class PullUpMinigame : MonoBehaviour
             c.a = 0f;
 
             _fadeImage.color = c;
+        }
+
+        if (_fadeText != null)
+        {
+            Color c = _fadeText.color;
+
+            c.a = 0f;
+
+            _fadeText.color = c;
         }
     }
 
@@ -59,12 +75,36 @@ public class PullUpMinigame : MonoBehaviour
 
         if (_minigameActive)
         {
-            // NEW: gradually increase difficulty
+            // gradually increase difficulty
             _currentForceMultiplier += _forceIncreaseRate * Time.deltaTime;
 
             _playerCamera.AddXRotation(_downwardForce * _currentForceMultiplier * Time.deltaTime);
 
             float currentRotation = _playerCamera.GetXRotation();
+
+            // START TEXT FADE IN + OUT
+            if (_showStartText && _fadeText != null)
+            {
+                Color c = _fadeText.color;
+
+                // Fade in quickly
+                if (c.a < 0.95f)
+                {
+                    c.a = Mathf.Lerp(c.a, 1f, _startTextFadeSpeed * Time.deltaTime);
+                }
+                // Then slowly fade out
+                else
+                {
+                    c.a = Mathf.Lerp(c.a, 0f, (_fadeSpeed * 0.35f) * Time.deltaTime);
+
+                    if (c.a <= 0.05f)
+                    {
+                        _showStartText = false;
+                    }
+                }
+
+                _fadeText.color = c;
+            }
 
             if (currentRotation >= _dangerZone)
             {
@@ -77,6 +117,16 @@ public class PullUpMinigame : MonoBehaviour
                     c.a = Mathf.Lerp(c.a, 8f, _fadeSpeed * Time.deltaTime);
 
                     _fadeImage.color = c;
+                }
+
+                // Fade text in while in danger zone
+                if (_fadeText != null)
+                {
+                    Color c = _fadeText.color;
+
+                    c.a = Mathf.Lerp(c.a, 1f, _fadeSpeed * Time.deltaTime);
+
+                    _fadeText.color = c;
                 }
 
                 if (_failTimer >= _failTime)
@@ -96,6 +146,16 @@ public class PullUpMinigame : MonoBehaviour
 
                     _fadeImage.color = c;
                 }
+
+                // Slowly fade out text normally
+                if (_fadeText != null && !_showStartText && currentRotation < _dangerZone)
+                {
+                    Color c = _fadeText.color;
+
+                    c.a = Mathf.Lerp(c.a, 0f, (_fadeSpeed * 0.35f) * Time.deltaTime);
+
+                    _fadeText.color = c;
+                }
             }
         }
         else
@@ -109,6 +169,15 @@ public class PullUpMinigame : MonoBehaviour
 
                 _fadeImage.color = c;
             }
+
+            if (_fadeText != null)
+            {
+                Color c = _fadeText.color;
+
+                c.a = Mathf.Lerp(c.a, 0f, _fadeSpeed * Time.deltaTime);
+
+                _fadeText.color = c;
+            }
         }
     }
 
@@ -120,7 +189,19 @@ public class PullUpMinigame : MonoBehaviour
 
         _failTimer = 0f;
 
-        _currentForceMultiplier = 1f; // reset difficulty
+        _currentForceMultiplier = 1f;
+
+        _showStartText = true;
+
+        // Reset text alpha so it can fade in again
+        if (_fadeText != null)
+        {
+            Color c = _fadeText.color;
+
+            c.a = 0f;
+
+            _fadeText.color = c;
+        }
     }
 
     private void StopMinigame()

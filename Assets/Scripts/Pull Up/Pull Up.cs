@@ -11,15 +11,17 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private Collider _playerCollider;
 
-    [SerializeField] private float _pullUpSpeed;
-
     [SerializeField] private PlayerCamera _playerCamera;
 
     [SerializeField] private RotatePlayer _rotatePlayer;
 
-    [SerializeField] private UnityEvent HoldingUp;
+    [SerializeField] private UnityEvent HoldingUp; 
+    
+    [SerializeField] private float _pullUpSpeed;
 
     [SerializeField] private float _cooldown = 1.0f;
+    
+    private Vector3 _startPosition;
 
     private float _nextPullUpTime;
 
@@ -28,8 +30,6 @@ public class PullUp : MonoBehaviour
     private bool _pullingUp;
 
     private bool _hasHeldUp;
-
-    private Vector3 _startPosition;
 
     private float _progress;
 
@@ -144,6 +144,7 @@ public class PullUp : MonoBehaviour
         if (_kinematicTimer >= _kinematicDelay && !_player.isKinematic)
         {
             _player.linearVelocity = Vector3.zero;
+
             _player.angularVelocity = Vector3.zero;
 
             _player.isKinematic = true;
@@ -159,6 +160,7 @@ public class PullUp : MonoBehaviour
         _progress = 0f;
 
         _player.linearVelocity = Vector3.zero;
+
         _player.angularVelocity = Vector3.zero;
 
         _kinematicTimer = 0f;
@@ -167,9 +169,11 @@ public class PullUp : MonoBehaviour
     private void FinishPullUp()
     {
         _pullingUp = false;
+
         _hasHeldUp = true;
 
         _player.linearVelocity = Vector3.zero;
+
         _player.angularVelocity = Vector3.zero;
 
         _player.transform.position = _hangingPoint.position;
@@ -205,9 +209,11 @@ public class PullUp : MonoBehaviour
         _hasHeldUp = false;
 
         _progress = 0f;
+
         _kinematicTimer = 0f;
 
         _player.linearVelocity = Vector3.zero;
+
         _player.angularVelocity = Vector3.zero;
 
         // ✅ NEW: start cooldown

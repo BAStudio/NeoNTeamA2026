@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -6,19 +7,21 @@ public class UIInteraction : MonoBehaviour
 {
     [SerializeField] private UnityEvent InteractionFunction;
 
+    [SerializeField] private KeyCode _key;
+    
+    [SerializeField] private Slider _interactionSlider;
+
+    [SerializeField] private Image _sliderFill;
+
     [SerializeField] private bool _holdingKey;
 
     [SerializeField] private float _holdingTime;
 
     [SerializeField] private float _interactionCooldown = 1f;
 
-    [SerializeField] private KeyCode _key;
-
-    [SerializeField] private Slider _interactionSlider;
-
-    [SerializeField] private Image _sliderFill;
-
     [SerializeField] private float _fadeSpeed = 2f;
+
+    [SerializeField] private bool _callCooldownFromOtherFunction;
 
     public static event System.Action InteractionUIFadeOut;
 
@@ -173,7 +176,10 @@ public class UIInteraction : MonoBehaviour
 
         _allowedToInteract = false;
 
-        _interactionCooldownTimer = _interactionCooldown;
+        if (!_callCooldownFromOtherFunction)
+        {
+            _interactionCooldownTimer = _interactionCooldown;
+        }
 
         Debug.Log("Successfully executed pressing action with input: " + _key);
     }
@@ -186,7 +192,10 @@ public class UIInteraction : MonoBehaviour
 
         _allowedToInteract = false;
 
-        _interactionCooldownTimer = _interactionCooldown;
+        if (!_callCooldownFromOtherFunction)
+        {
+            _interactionCooldownTimer = _interactionCooldown;
+        }
 
         _targetAlpha = 0f;
 
