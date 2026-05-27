@@ -1,39 +1,55 @@
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class PlayerStamina : MonoBehaviour
 {
-    [SerializeField] private GameObject staminaBar;
-    public static PlayerStamina Instance;
+    public static PlayerStamina Instance { get; private set; }
 
-    [SerializeField] private float maxStamina = 5f;
+    [SerializeField] private GameObject staminaBar;
+
+    [SerializeField, Min(0.1f)] private float maxStamina = 5f;
     public float stamina;
 
-    [SerializeField] private float staminaRegenDelay = 2f;
+    [SerializeField, Min(0f)] private float staminaRegenDelay = 2f;
+    [SerializeField, Min(0f)] private float staminaRegenPerSecond = 1f;
+
     private float staminaRegenTimer = 0f;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         stamina = maxStamina;
     }
 
     private void Update()
     {
-        staminaBar.transform.localScale = new Vector3(stamina / maxStamina, stamina / maxStamina, 1f);
-        if (stamina < maxStamina && staminaRegenTimer <= 0)
+        if (staminaBar != null)
         {
-            RegenerateStamina(1f * Time.deltaTime);
+            float scale = stamina / maxStamina;
+            staminaBar.transform.localScale = new Vector3(scale, scale, 1f);
         }
-        else
+
+        if (stamina < maxStamina)
         {
-            staminaRegenTimer -= Time.deltaTime;
+            if (staminaRegenTimer <= 0f)
+            {
+                RegenerateStamina(staminaRegenPerSecond * Time.deltaTime);
+            }
+            else
+            {
+                staminaRegenTimer -= Time.deltaTime;
+            }
         }
     }
 
     public void ConsumeStamina(float amount)
     {
-        staminaRegenTimer = staminaRegenDelay; 
+        staminaRegenTimer = staminaRegenDelay;
         stamina = Mathf.Max(stamina - amount, 0f);
     }
 
