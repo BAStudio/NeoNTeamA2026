@@ -2,7 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 
-public class NotePad : MonoBehaviour
+public class NotePad_ : MonoBehaviour
 {
     [SerializeField] private GameObject _notePad;
 

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
 
-public class Movement : MonoBehaviour
+public class Movement_ : MonoBehaviour
 {
     [SerializeField] private float _speed;
     private Rigidbody rb;
