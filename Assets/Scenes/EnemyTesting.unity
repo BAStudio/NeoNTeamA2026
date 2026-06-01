@@ -1057,10 +1057,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7203569965768245759, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2551912272602922536, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1774315191}
     - targetCorrespondingSourceObject: {fileID: 95083275363951979, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
@@ -3532,6 +3536,31 @@ Transform:
   m_Children: []
   m_Father: {fileID: 126413621}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1774315185 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2551912272602922536, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+  m_PrefabInstance: {fileID: 210160594}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1774315191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1774315185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c3c12dd7ebc43043bcf6b36488c9748, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player_Camera
+  mouseSensitivity: 100
+  verticalLookLimit: 90
+  horizontalLookLimit: 60
+  smoothSpeed: 10
+  swayPositionAmount: 0.03
+  sprintSwayBoost: 0.02
+  swayRollAmount: 2
+  swaySmooth: 8
 --- !u!1 &1826108630
 GameObject:
   m_ObjectHideFlags: 0
@@ -4576,6 +4605,10 @@ PrefabInstance:
       propertyPath: masterGrid
       value: 
       objectReference: {fileID: 2061957584}
+    - target: {fileID: 7351079564340287380, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
+      propertyPath: patrolScoutInterval
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 8164634526976707678, guid: f0a683a153131fd4bb7954c2be5407a6, type: 3}
       propertyPath: damageAmount
       value: 100

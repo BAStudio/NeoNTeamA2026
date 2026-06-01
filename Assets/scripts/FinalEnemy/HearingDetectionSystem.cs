@@ -3,12 +3,12 @@ using UnityEngine;
 public class HearingDetectionSystem : MonoBehaviour
 {
     [Header("Hearing")]
-    [SerializeField] private float hearingRadius = 8f;
-    [SerializeField] private float hearingDetectionBoost = 20f;
+    [SerializeField] private float hearingRadius = 10f;
+    [SerializeField] private float hearingDetectionBoost = 18f;
 
     [Header("Occlusion")]
     [SerializeField] private LayerMask wallLayer;
-    [SerializeField, Range(0.1f, 1f)] private float wallAttenuationMultiplier = 0.7f;
+    [SerializeField, Range(0.1f, 1f)] private float wallAttenuationMultiplier = 0.65f;
 
     private Transform ownerTransform;
 

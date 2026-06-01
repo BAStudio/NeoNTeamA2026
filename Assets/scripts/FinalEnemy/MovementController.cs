@@ -4,8 +4,8 @@ public class MovementController : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float patrolSpeed = 2f;
-    [SerializeField] private float alertSpeed = 2.5f;
-    [SerializeField] private float stalkSpeed = 1f;
+    [SerializeField] private float alertSpeed = 3f;
+    [SerializeField] private float stalkSpeed = 1.2f;
     [SerializeField] private float chaseSpeed = 5f;
 
     [Header("Rotation")]
@@ -14,15 +14,15 @@ public class MovementController : MonoBehaviour
     [SerializeField] private float chaseRotationSpeed = 360f;
 
     [Header("Waypoint Smoothing")]
-    [SerializeField] private float patrolSlowdownDistance = 0.45f;
-    [SerializeField] private float alertSlowdownDistance = 0.45f;
-    [SerializeField] private float stalkSlowdownDistance = 0.25f;
-    [SerializeField] private float chaseSlowdownDistance = 0.6f;
+    [SerializeField] private float patrolSlowdownDistance = 0.55f;
+    [SerializeField] private float alertSlowdownDistance = 0.6f;
+    [SerializeField] private float stalkSlowdownDistance = 0.35f;
+    [SerializeField] private float chaseSlowdownDistance = 0.75f;
 
-    [SerializeField] private float patrolMinMultiplier = 0.55f;
+    [SerializeField] private float patrolMinMultiplier = 0.50f;
     [SerializeField] private float alertMinMultiplier = 0.60f;
     [SerializeField] private float stalkMinMultiplier = 0.85f;
-    [SerializeField] private float chaseMinMultiplier = 0.70f;
+    [SerializeField] private float chaseMinMultiplier = 0.68f;
 
     [Header("Arrival")]
     [SerializeField] private float arriveThreshold = 0.05f;

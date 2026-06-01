@@ -14,32 +14,32 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     [SerializeField] private bool enableCameraSignals = true;
     [SerializeField] private bool enableVisionSense = true;
     [SerializeField] private bool autoAddMissingSensorComponents = true;
-    [SerializeField] private float cameraDetectionMultiplier = 45f;
-    [SerializeField] private float visionDetectionMultiplier = 30f;
-    [SerializeField] private float soundFallbackMultiplier = 20f;
-    [SerializeField] private float signalMemoryTime = 2.5f;
-    [SerializeField] private float signalReceiveCooldown = 0.08f;
+    [SerializeField] private float cameraDetectionMultiplier = 55f;
+    [SerializeField] private float visionDetectionMultiplier = 60f;
+    [SerializeField] private float soundFallbackMultiplier = 18f;
+    [SerializeField] private float signalMemoryTime = 5f;
+    [SerializeField] private float signalReceiveCooldown = 0.12f;
     [SerializeField] private float visionScanInterval = 0.12f;
 
     [Header("Predictive Chasing")]
     [SerializeField] private float predictionLookAhead = 0.5f;
-    [SerializeField] private float chasePathRefreshRate = 0.18f;
+    [SerializeField] private float chasePathRefreshRate = 0.24f;
 
     [Header("Room Patrol")]
-    [SerializeField] private float patrolScoutInterval = 9f;
+    [SerializeField] private float patrolScoutInterval = 11f;
     [SerializeField, Range(0f, 1f)] private float patrolScoutOtherRoomChance = 0.35f;
 
     [Header("Room/Search Look Around")]
-    [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 6f;
+    [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 7f;
     [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
     [SerializeField] private float searchTimeExtensionPerAttempt = 2f;
     [SerializeField] private int maxSearchAttempts = 3;
 
     [Header("Thresholds")]
-    [SerializeField, Range(0f, 1f)] private float alertThresholdPercent = 0.25f;
-    [SerializeField, Range(0f, 1f)] private float stalkingThresholdPercent = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float chaseThresholdPercent = 0.7f;
-    [SerializeField, Range(0f, 1f)] private float chaseDropThresholdPercent = 0.55f;
+    [SerializeField, Range(0f, 1f)] private float alertThresholdPercent = 0.30f;
+    [SerializeField, Range(0f, 1f)] private float stalkingThresholdPercent = 0.45f;
+    [SerializeField, Range(0f, 1f)] private float chaseThresholdPercent = 0.70f;
+    [SerializeField, Range(0f, 1f)] private float chaseDropThresholdPercent = 0.50f;
 
     [Header("Debug")]
     [SerializeField] private bool verboseLogs = false;

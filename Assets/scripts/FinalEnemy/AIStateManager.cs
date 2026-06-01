@@ -5,10 +5,10 @@ public class AIStateManager : MonoBehaviour
     public enum AIState { Patrol, Alert, Stalking, Chase, Search }
 
     [Header("State Timers")]
-    [SerializeField] private float alertDuration = 2f;
-    [SerializeField] private float stalkerDuration = 3f;
-    [SerializeField] private float searchDuration = 6f;
-    [SerializeField] private float lookAroundDuration = 10f;
+    [SerializeField] private float alertDuration = 4f;
+    [SerializeField] private float stalkerDuration = 4f;
+    [SerializeField] private float searchDuration = 8f;
+    [SerializeField] private float lookAroundDuration = 6f;
 
     private AIState currentState = AIState.Patrol;
     private float alertTimer;
