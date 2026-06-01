@@ -12,6 +12,9 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float acceleration = 20f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.4f;
 
+    public bool IsSprinting => isSprinting;
+    public float MovementIntensity => Mathf.Clamp01(new Vector2(currentVelocity.x, currentVelocity.z).magnitude / Mathf.Max(0.0001f, sprintSpeed));
+
     [Header("Jump")]
     [SerializeField] private float jumpForce = 8f;
     [SerializeField] private float jumpStaminaCost = 1f;
@@ -104,7 +107,7 @@ public class PlayerMovement : BasePhysics
 
         if (orientation == null)
         {
-            inputDirection = new Vector3(h, 0f, v).normalized;
+            inputDirection = new Vector3(-h, 0f, -v).normalized;
             return;
         }
 
@@ -117,7 +120,7 @@ public class PlayerMovement : BasePhysics
         forward.Normalize();
         right.Normalize();
 
-        inputDirection = (forward * v + right * h).normalized;
+        inputDirection = (-forward * v - right * h).normalized;
     }
 
     private void HandleMovement()

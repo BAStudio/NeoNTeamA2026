@@ -4,70 +4,116 @@ public class MovementController : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float patrolSpeed = 2f;
-    [SerializeField] private float alertSpeed = 2.5f;
-    [SerializeField] private float stalkSpeed = 1f; // Slow creep when stalking
+    [SerializeField] private float alertSpeed = 3f;
+    [SerializeField] private float stalkSpeed = 1.2f;
     [SerializeField] private float chaseSpeed = 5f;
-    [SerializeField] private float rotationSpeed = 4f;
-    [SerializeField] private float movementSmoothTime = 0.08f;
+
+    [Header("Rotation")]
+    [SerializeField] private float patrolRotationSpeed = 180f;
+    [SerializeField] private float stalkRotationSpeed = 140f;
+    [SerializeField] private float chaseRotationSpeed = 360f;
+
+    [Header("Waypoint Smoothing")]
+    [SerializeField] private float patrolSlowdownDistance = 0.55f;
+    [SerializeField] private float alertSlowdownDistance = 0.6f;
+    [SerializeField] private float stalkSlowdownDistance = 0.35f;
+    [SerializeField] private float chaseSlowdownDistance = 0.75f;
+
+    [SerializeField] private float patrolMinMultiplier = 0.50f;
+    [SerializeField] private float alertMinMultiplier = 0.60f;
+    [SerializeField] private float stalkMinMultiplier = 0.85f;
+    [SerializeField] private float chaseMinMultiplier = 0.68f;
+
+    [Header("Arrival")]
+    [SerializeField] private float arriveThreshold = 0.05f;
 
     private Transform ownerTransform;
-    private Vector3 movementVelocity;
 
     private void OnEnable()
     {
         ownerTransform = transform;
     }
 
-    /// <summary>
-    /// Moves the enemy along a path towards the target waypoint with smooth interpolation
-    /// </summary>
-    public void MoveTowardsWaypoint(Vector3 target, AIStateManager.AIState currentState, float deltaTime)
+    public bool MoveTowardsWaypoint(
+        Vector3 target,
+        AIStateManager.AIState currentState,
+        float deltaTime)
     {
-        float speed = GetSpeedForState(currentState);
-        Vector3 dir = target - ownerTransform.position;
-        float distanceToTarget = dir.magnitude;
-        Vector3 moveDir = distanceToTarget > 0.0001f ? dir.normalized : Vector3.zero;
+        Vector3 currentPos = ownerTransform.position;
 
-        // Smooth movement with slight deceleration near waypoint
-        float adjustedSpeed = speed;
-        if (distanceToTarget < 1f && distanceToTarget > 0.0001f)
+        Vector3 targetPos = new Vector3(
+            target.x,
+            currentPos.y,
+            target.z);
+
+        Vector3 toTarget = targetPos - currentPos;
+
+        float distance = toTarget.magnitude;
+
+        // Fully reached node
+        if (distance <= arriveThreshold)
         {
-            adjustedSpeed = speed * Mathf.Clamp01(distanceToTarget); // Decelerate smoothly near target
+            ownerTransform.position = targetPos;
+            return true;
         }
 
-        // Damped movement improves fluidity and removes step-like motion.
-        ownerTransform.position = Vector3.SmoothDamp(
-            ownerTransform.position,
-            target,
-            ref movementVelocity,
-            movementSmoothTime,
-            adjustedSpeed,
-            deltaTime
-        );
+        Vector3 moveDir = toTarget.normalized;
 
-        // Smooth rotation to face direction - faster in chase
-        float rotSpeed = currentState == AIStateManager.AIState.Chase ? 8f : 4f;
+        float speed = GetSpeedForState(currentState);
+
+        float slowdownDistance = GetSlowdownDistance(currentState);
+        float minMultiplier = GetMinSpeedMultiplier(currentState);
+
+        float t = slowdownDistance > 0f
+            ? Mathf.Clamp01(distance / slowdownDistance)
+            : 1f;
+
+        t = t * t * (3f - 2f * t);
+
+        float adjustedSpeed = Mathf.Lerp(
+            speed * minMultiplier,
+            speed,
+            t);
+
+        float moveStep = adjustedSpeed * deltaTime;
+
+        // NEVER overshoot node
+        if (moveStep >= distance)
+        {
+            ownerTransform.position = targetPos;
+            return true;
+        }
+
+        ownerTransform.position =
+            currentPos + moveDir * moveStep;
+
+        // Rotate toward movement direction
         if (moveDir.sqrMagnitude > 0.0001f)
         {
-            ownerTransform.rotation = Quaternion.Slerp(
-                ownerTransform.rotation,
-                Quaternion.LookRotation(moveDir),
-                rotSpeed * deltaTime
-            );
+            float rotSpeed = GetRotationSpeed(currentState);
+
+            Quaternion targetRotation =
+                Quaternion.LookRotation(-moveDir, Vector3.up);
+
+            ownerTransform.rotation =
+                Quaternion.RotateTowards(
+                    ownerTransform.rotation,
+                    targetRotation,
+                    rotSpeed * deltaTime);
         }
+
+        return false;
     }
 
-    /// <summary>
-    /// Rotates in place (for search behavior)
-    /// </summary>
-    public void RotateInPlace(float rotationDegrees)
+    public void RotateInPlace(
+        float rotationDegreesPerSecond,
+        float deltaTime)
     {
-        ownerTransform.Rotate(Vector3.up, rotationDegrees * Time.deltaTime);
+        ownerTransform.Rotate(
+            Vector3.up,
+            rotationDegreesPerSecond * deltaTime);
     }
 
-    /// <summary>
-    /// Gets the appropriate speed for the current AI state
-    /// </summary>
     private float GetSpeedForState(AIStateManager.AIState state)
     {
         return state switch
@@ -78,6 +124,42 @@ public class MovementController : MonoBehaviour
             AIStateManager.AIState.Chase => chaseSpeed,
             AIStateManager.AIState.Search => patrolSpeed,
             _ => patrolSpeed
+        };
+    }
+
+    private float GetSlowdownDistance(AIStateManager.AIState state)
+    {
+        return state switch
+        {
+            AIStateManager.AIState.Patrol => patrolSlowdownDistance,
+            AIStateManager.AIState.Alert => alertSlowdownDistance,
+            AIStateManager.AIState.Stalking => stalkSlowdownDistance,
+            AIStateManager.AIState.Chase => chaseSlowdownDistance,
+            AIStateManager.AIState.Search => patrolSlowdownDistance,
+            _ => patrolSlowdownDistance
+        };
+    }
+
+    private float GetMinSpeedMultiplier(AIStateManager.AIState state)
+    {
+        return state switch
+        {
+            AIStateManager.AIState.Patrol => patrolMinMultiplier,
+            AIStateManager.AIState.Alert => alertMinMultiplier,
+            AIStateManager.AIState.Stalking => stalkMinMultiplier,
+            AIStateManager.AIState.Chase => chaseMinMultiplier,
+            AIStateManager.AIState.Search => patrolMinMultiplier,
+            _ => patrolMinMultiplier
+        };
+    }
+
+    private float GetRotationSpeed(AIStateManager.AIState state)
+    {
+        return state switch
+        {
+            AIStateManager.AIState.Stalking => stalkRotationSpeed,
+            AIStateManager.AIState.Chase => chaseRotationSpeed,
+            _ => patrolRotationSpeed
         };
     }
 

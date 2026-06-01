@@ -17,7 +17,6 @@ public class Node
         GridPosition = gridPos;
         WorldPosition = worldPos;
         IsWalkable = walkable;
-
         ResetCosts();
     }
 

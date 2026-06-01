@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
 
-public class Movement : MonoBehaviour
+public class Movement_ : MonoBehaviour
 {
     [SerializeField] private float _speed;
     private Rigidbody rb;
@@ -33,8 +33,8 @@ public class Movement : MonoBehaviour
         playerStamina = PlayerStamina.Instance;
         rb = GetComponent<Rigidbody>();
 
-        NotePad.StopMovement += StopMovement;
-        NotePad.ContinueMovement += ContinueMovement;
+        NotePad_.StopMovement += StopMovement;
+        NotePad_.ContinueMovement += ContinueMovement;
 
         rb.freezeRotation = true;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
