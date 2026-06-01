@@ -1,84 +1,75 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
-    public float mouseSensitivity = 100f;
-    public float verticalLookLimit = 90f;
+    [Header("References")]
+    [SerializeField] private Transform playerBody; 
 
-    [SerializeField] private float horizontalLookLimit = 60f;
-    [SerializeField] private float smoothSpeed = 10f;
+    [Header("Look")]
+    [SerializeField] private float mouseSensitivity = 100f;
+    [SerializeField] private float verticalLookLimit = 90f;
 
-    private float xRotation = 0f;
-    private float yRotation = 0f;
+    [Header("Sway / Bob / Noise")]
+    [SerializeField] private float smoothTime = 0.08f;
+    [SerializeField] private float swayAmount = 2.5f;
+    [SerializeField] private float swaySmooth = 5f;
 
-    private bool _limitedLook = false;
+    [SerializeField] private float bobPitchAmount = 0.8f;
+    [SerializeField] private float bobSpeed = 2.5f;
 
-    private Quaternion _targetRotation;
+    [SerializeField] private float randomStrength = 0.6f;
+    [SerializeField] private float randomSmooth = 1.5f;
 
-    void Start()
+    private float xRotation;
+    private float currentXRotation;
+    private float rotationVelocity;
+
+    private float swayX;
+    private float swayTargetX;
+
+    private float bobTimer;
+    private float noiseTime;
+    private float noiseOffsetX;
+    private float noiseOffsetY;
+
+    private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
 
-        _targetRotation = transform.localRotation;
+        if (playerBody == null && transform.parent != null)
+            playerBody = transform.parent;
     }
 
-    void Update()
+    private void Update()
     {
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
+        if (playerBody != null)
+            playerBody.Rotate(Vector3.up * mouseX);
+
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -verticalLookLimit, verticalLookLimit);
 
-        if (_limitedLook)
-        {
-            yRotation += mouseX;
+        bobTimer += Time.deltaTime * bobSpeed;
+        noiseTime += Time.deltaTime * randomSmooth;
 
-            yRotation = Mathf.Clamp(yRotation, -horizontalLookLimit, horizontalLookLimit);
-        }
-        else
-        {
-            yRotation = 0f;
-        }
+        noiseOffsetX = (Mathf.PerlinNoise(noiseTime, 0.1f) - 0.5f) * randomStrength;
+        noiseOffsetY = (Mathf.PerlinNoise(0.1f, noiseTime) - 0.5f) * randomStrength;
 
-        _targetRotation = Quaternion.Euler(xRotation, yRotation, 0f);
+        float bobPitch = Mathf.Sin(bobTimer) * bobPitchAmount;
+        float finalPitch = xRotation + bobPitch + noiseOffsetY;
 
-        transform.localRotation = Quaternion.Slerp(
-            transform.localRotation,
-            _targetRotation,
-            smoothSpeed * Time.deltaTime
+        currentXRotation = Mathf.SmoothDampAngle(
+            currentXRotation,
+            finalPitch,
+            ref rotationVelocity,
+            smoothTime
         );
-    }
 
-    // ---------------- ADDED ----------------
+        swayTargetX = (-mouseX * swayAmount) + noiseOffsetX;
+        swayX = Mathf.Lerp(swayX, swayTargetX, Time.deltaTime * swaySmooth);
 
-    public void AddXRotation(float amount)
-    {
-        xRotation += amount;
-
-        xRotation = Mathf.Clamp(xRotation, -verticalLookLimit, verticalLookLimit);
-    }
-
-    public float GetXRotation()
-    {
-        return xRotation;
-    }
-
-    // ---------------------------------------
-
-    public void EnableLimitedLook()
-    {
-        _limitedLook = true;
-
-        yRotation = 0f;
-    }
-
-    public void DisableLimitedLook()
-    {
-        _limitedLook = false;
-
-        yRotation = 0f;
+        transform.localRotation = Quaternion.Euler(currentXRotation, swayX, 0f);
     }
 }

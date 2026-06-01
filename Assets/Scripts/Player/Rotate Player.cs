@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RotatePlayer : MonoBehaviour
+public class RotatePlayer : MonoBehaviour //D'onnell`
 {
-    public float mouseSensitivity = 100f; 
+    public float _mouseSensitivity = 100f; 
 
     private bool _canRotate = true; 
 
@@ -17,7 +17,7 @@ public class RotatePlayer : MonoBehaviour
     {
         if (!_canRotate) return; 
 
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+        float mouseX = Input.GetAxis("Mouse X") * _mouseSensitivity * Time.deltaTime;
 
         transform.Rotate(Vector3.up * mouseX);
     }
@@ -31,4 +31,4 @@ public class RotatePlayer : MonoBehaviour
     {
         _canRotate = true;
     }
-}
+} 

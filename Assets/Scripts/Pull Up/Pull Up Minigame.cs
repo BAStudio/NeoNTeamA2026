@@ -7,7 +7,7 @@ public class PullUpMinigame : MonoBehaviour
 {
     [SerializeField] private UnityEngine.Rendering.Volume _postProcessVolume;
 
-    [SerializeField] private PlayerCamera _playerCamera;
+    [SerializeField] private Player_Camera _playerCamera;
 
     [SerializeField] private Image _fadeImage;
 

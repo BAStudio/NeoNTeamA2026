@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RotatePlayer : MonoBehaviour
+public class Rotate_Player: MonoBehaviour // yussien
 {
     public float mouseSensitivity = 100f;
     public float smoothTime = 0.08f;

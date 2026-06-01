@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class AudibleMovement : MonoBehaviour
+public class AudibleMovement : MonoBehaviour //d'onnel
 {
     [SerializeField] AudioSource _audioSource;
 
@@ -11,15 +11,6 @@ public class AudibleMovement : MonoBehaviour
 
     private Coroutine _fadeRoutine;
 
-    void Start()
-    {
-
-    }
-
-    void Update()
-    {
-
-    }
 
     public void PlayWalk()
     {

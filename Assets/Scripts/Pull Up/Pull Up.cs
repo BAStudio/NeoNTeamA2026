@@ -11,7 +11,7 @@ public class PullUp : MonoBehaviour
 
     [SerializeField] private Collider _playerCollider;
 
-    [SerializeField] private PlayerCamera _playerCamera;
+    [SerializeField] private Player_Camera _playerCamera;
 
     [SerializeField] private RotatePlayer _rotatePlayer;
 
