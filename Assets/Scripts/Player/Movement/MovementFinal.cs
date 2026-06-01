@@ -104,7 +104,7 @@ public class PlayerMovement : BasePhysics
 
         if (orientation == null)
         {
-            inputDirection = new Vector3(h, 0f, v).normalized;
+            inputDirection = new Vector3(-h, 0f, -v).normalized;
             return;
         }
 
@@ -117,7 +117,7 @@ public class PlayerMovement : BasePhysics
         forward.Normalize();
         right.Normalize();
 
-        inputDirection = (forward * v + right * h).normalized;
+        inputDirection = (-forward * v - right * h).normalized;
     }
 
     private void HandleMovement()

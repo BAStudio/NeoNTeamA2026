@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class VisionDetectionSystem : MonoBehaviour
@@ -29,13 +28,14 @@ public class VisionDetectionSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Casts vision rays and counts how many hit the player
+    /// Casts vision rays and counts how many hit the player.
+    /// Useful for cameras or other watcher objects.
     /// </summary>
     public int CastVisionRaysAndCountHits(Vector3 lookDirection = default)
     {
         int hits = 0;
         Vector3 eyePos = ownerTransform.position + Vector3.up * eyeHeight;
-        Vector3 centerDir = lookDirection == default ? ownerTransform.forward : lookDirection;
+        Vector3 centerDir = lookDirection.sqrMagnitude <= 0.0001f ? ownerTransform.forward : lookDirection.normalized;
 
         float baseAngle = Mathf.Atan2(centerDir.x, centerDir.z) * Mathf.Rad2Deg;
 
@@ -68,32 +68,23 @@ public class VisionDetectionSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Performs a direct line-of-sight check to the player
+    /// Direct line-of-sight check against a target position.
     /// </summary>
-    public bool CanSeePlayer()
+    public bool CanSeeTarget(Vector3 targetPosition)
     {
-        if (playerTransform == null) return false;
-
         Vector3 eyePos = ownerTransform.position + Vector3.up * eyeHeight;
-        Vector3 targetPos = playerTransform.position + Vector3.up * eyeHeight;
-        Vector3 dirToPlayer = targetPos - eyePos;
-        float distance = dirToPlayer.magnitude;
+        Vector3 targetPos = targetPosition + Vector3.up * eyeHeight;
+        Vector3 dirToTarget = targetPos - eyePos;
+        float distance = dirToTarget.magnitude;
 
         if (distance > viewRadius) return false;
-        if (Vector3.Angle(ownerTransform.forward, dirToPlayer.normalized) > viewAngle / 2f) return false;
-
-        // Wall blocking
-        if (Physics.Linecast(eyePos, targetPos, wallLayer))
-            return false;
+        if (Vector3.Angle(ownerTransform.forward, dirToTarget.normalized) > viewAngle / 2f) return false;
+        if (Physics.Linecast(eyePos, targetPos, wallLayer)) return false;
 
         return true;
     }
 
-    /// <summary>
-    /// Gets the player transform
-    /// </summary>
     public Transform GetPlayerTransform() => playerTransform;
-
     public float GetViewRadius() => viewRadius;
     public float GetViewAngle() => viewAngle;
 
@@ -113,11 +104,9 @@ public class VisionDetectionSystem : MonoBehaviour
 
     public void DrawDebugGizmos(Vector3 pos, Vector3 centerDir)
     {
-        // Hearing
         Gizmos.color = Color.white;
         Gizmos.DrawWireSphere(pos, viewRadius);
 
-        // FOV cone
         Vector3 left = Quaternion.AngleAxis(-viewAngle / 2f, Vector3.up) * centerDir;
         Vector3 right = Quaternion.AngleAxis(viewAngle / 2f, Vector3.up) * centerDir;
 

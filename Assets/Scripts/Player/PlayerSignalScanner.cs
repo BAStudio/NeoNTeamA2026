@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public class PlayerSignalScanner : MonoBehaviour
 {
@@ -16,6 +17,8 @@ public class PlayerSignalScanner : MonoBehaviour
     [Header("Raycast Settings")]
     [SerializeField, Range(8, 128)] private int rayCount = 48;
     [SerializeField] private LayerMask detectionLayer;
+    [SerializeField] private LayerMask wallLayer;
+    [SerializeField, Range(0.1f, 1f)] private float wallAttenuationMultiplier = 0.7f;
     [SerializeField] private bool drawDebugRays = true;
 
     [Header("Debug")]
@@ -107,46 +110,92 @@ public class PlayerSignalScanner : MonoBehaviour
             float angle = i * angleStep;
             Vector3 dir = DirFromAngle(angle);
 
-            if (Physics.Raycast(waveOrigin, dir, out RaycastHit hit, outerRadius, detectionLayer))
-            {
-                float dist = hit.distance;
+            RaycastHit[] hits = Physics.RaycastAll(
+                waveOrigin,
+                dir,
+                outerRadius,
+                ~0,
+                QueryTriggerInteraction.Ignore);
 
-                if (dist >= innerRadius && dist <= outerRadius)
-                {
-                    // normalized relative to max wave radius (0..1)
-                    float normalized = Mathf.Clamp01(dist / Mathf.Max(0.0001f, waveMaxRadius));
-
-                    // smoother falloff (you can tweak this)
-                    float strength = waveStrength * (1f - normalized * normalized);
-
-                    OnSignalHit(hit, waveOrigin, Mathf.Clamp01(strength));
-
-                    if (drawDebugRays)
-                        Debug.DrawRay(waveOrigin, dir * dist, Color.cyan, 0.08f);
-                }
-            }
-            else if (drawDebugRays)
+            if (hits == null || hits.Length == 0)
             {
                 Debug.DrawRay(waveOrigin, dir * outerRadius, Color.gray, 0.05f);
+                continue;
             }
+
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            int wallCount = 0;
+            bool drewAnyHit = false;
+
+            for (int hitIndex = 0; hitIndex < hits.Length; hitIndex++)
+            {
+                RaycastHit hit = hits[hitIndex];
+                float dist = hit.distance;
+
+                if (dist < innerRadius || dist > outerRadius)
+                    continue;
+
+                if (IsWall(hit.collider))
+                {
+                    wallCount++;
+                    drewAnyHit = true;
+
+                    if (drawDebugRays)
+                        Debug.DrawRay(waveOrigin, dir * dist, Color.gray, 0.05f);
+
+                    continue;
+                }
+
+                ISignalReceiver receiver = FindReceiver(hit.collider);
+                if (receiver == null)
+                    continue;
+
+                float normalized = Mathf.Clamp01(dist / Mathf.Max(0.0001f, waveMaxRadius));
+                float strength = waveStrength * (1f - normalized * normalized);
+
+                for (int wallIndex = 0; wallIndex < wallCount; wallIndex++)
+                    strength *= wallAttenuationMultiplier;
+
+                strength = Mathf.Clamp01(strength);
+
+                receiver.OnSignalReceived(waveOrigin, strength);
+
+                drewAnyHit = true;
+
+                if (drawDebugRays)
+                    Debug.DrawRay(waveOrigin, dir * dist, Color.cyan, 0.08f);
+            }
+
+            if (!drewAnyHit && drawDebugRays)
+                Debug.DrawRay(waveOrigin, dir * outerRadius, Color.gray, 0.05f);
         }
     }
 
-    private void OnSignalHit(RaycastHit hit, Vector3 source, float strength)
+    private ISignalReceiver FindReceiver(Collider hitCollider)
     {
-        ISignalReceiver receiver = null;
+        if (hitCollider == null)
+            return null;
 
-        receiver = hit.collider.GetComponent<ISignalReceiver>();
+        ISignalReceiver receiver = hitCollider.GetComponent<ISignalReceiver>();
         if (receiver == null)
-            receiver = hit.collider.GetComponentInParent<ISignalReceiver>();
+            receiver = hitCollider.GetComponentInParent<ISignalReceiver>(true);
         if (receiver == null)
-            receiver = hit.collider.GetComponentInChildren<ISignalReceiver>();
+            receiver = hitCollider.GetComponentInChildren<ISignalReceiver>(true);
+        if (receiver == null && hitCollider.transform.root != null)
+            receiver = hitCollider.transform.root.GetComponentInChildren<ISignalReceiver>(true);
 
-        if (receiver != null)
-        {
-            receiver.OnSignalReceived(source, strength);
-        }
+        return receiver;
     }
+
+    private bool IsWall(Collider hitCollider)
+    {
+        if (hitCollider == null)
+            return false;
+
+        return ((1 << hitCollider.gameObject.layer) & wallLayer.value) != 0;
+    }
+
     #endregion
 
     #region Utility

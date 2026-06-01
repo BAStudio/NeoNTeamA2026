@@ -31,7 +31,13 @@ public class PlayerDamageManager : MonoBehaviour
     {
         Debug.Log("Player died.");
 
-        SceneManager.LoadScene("YouLose");
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+    }
+
+    public void KillAndRestart()
+    {
+        Die();
 
     }
 }

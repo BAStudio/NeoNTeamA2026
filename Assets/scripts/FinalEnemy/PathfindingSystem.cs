@@ -7,11 +7,13 @@ public class PathfindingSystem : MonoBehaviour
     [SerializeField] private float pathRefreshRate = 0.3f;
     [SerializeField] private float nodeReachThreshold = 0.2f;
     [SerializeField] private int maxNodeAdvancePerUpdate = 4;
+
     [Header("Path Quality")]
     [SerializeField] private int wallProximityPenalty = 6;
     [SerializeField] private int turnPenalty = 4;
     [SerializeField] private int sharpTurnExtraPenalty = 6;
     [SerializeField] private bool preventDiagonalCornerCutting = true;
+
     [Header("Room Patrol")]
     [SerializeField] private int roomSeedBlockedWallThreshold = 3;
     [SerializeField] private int roomMinSeedClusterSize = 2;
@@ -59,36 +61,29 @@ public class PathfindingSystem : MonoBehaviour
         BuildRoomMap();
     }
 
-    /// <summary>
-    /// Gets the current path
-    /// </summary>
     public List<Vector3> GetCurrentPath() => currentPath;
-
-    /// <summary>
-    /// Gets the current path index
-    /// </summary>
     public int GetPathIndex() => pathIndex;
 
-    /// <summary>
-    /// Gets the next waypoint in the path
-    /// </summary>
-    public Vector3? GetNextWaypoint()
+    public Vector3? GetNextWaypoint(int lookAhead = 0)
     {
         if (currentPath == null || pathIndex >= currentPath.Count)
             return null;
-        return currentPath[pathIndex];
+
+        int index = Mathf.Min(pathIndex + Mathf.Max(0, lookAhead), currentPath.Count - 1);
+        return currentPath[index];
     }
 
-    /// <summary>
-    /// Checks if path is complete
-    /// </summary>
     public bool IsPathComplete() => currentPath == null || pathIndex >= currentPath.Count;
 
-    /// <summary>
-    /// Generates a new path to the target
-    /// </summary>
     public void GeneratePath(Vector3 targetPos)
     {
+        if (masterGrid != null)
+        {
+            Node nearestTarget = masterGrid.GetNearestWalkableNode(targetPos);
+            if (nearestTarget != null)
+                targetPos = nearestTarget.WorldPosition;
+        }
+
         var path = AStar(targetPos);
         if (path != null && path.Count > 0)
         {
@@ -102,25 +97,20 @@ public class PathfindingSystem : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Picks a random patrol destination
-    /// </summary>
     public void PickRandomPatrol()
     {
         if (masterGrid == null) return;
+
         for (int i = 0; i < 12; i++)
         {
             Node n = masterGrid.GetRandomWalkableNode();
             if (n == null) continue;
+
             GeneratePath(n.WorldPosition);
             return;
         }
     }
 
-    /// <summary>
-    /// Picks a patrol point in the room where the enemy currently is.
-    /// Falls back to random patrol if no room data is available.
-    /// </summary>
     public void PickPatrolInCurrentRoom()
     {
         Node current = masterGrid != null ? masterGrid.NodeFromWorld(ownerTransform.position) : null;
@@ -133,10 +123,6 @@ public class PathfindingSystem : MonoBehaviour
         PickDestinationInsideRoom(roomId);
     }
 
-    /// <summary>
-    /// Picks a patrol point in a different room than the current one.
-    /// Returns false when no alternate room exists.
-    /// </summary>
     public bool PickPatrolInDifferentRoom()
     {
         if (detectedRooms.Count <= 1)
@@ -180,39 +166,32 @@ public class PathfindingSystem : MonoBehaviour
         return roomByNode.TryGetValue(node, out int roomId) ? roomId : -1;
     }
 
-    /// <summary>
-    /// Updates path following - advances to next node when reached
-    /// </summary>
-    public void UpdatePathProgress()
+    public void UpdatePathProgress(float extraThreshold = 0f)
     {
         if (currentPath == null || pathIndex >= currentPath.Count)
             return;
 
-        int maxAdvance = Mathf.Max(1, maxNodeAdvancePerUpdate);
-        int advanced = 0;
+        float threshold = nodeReachThreshold + extraThreshold;
+        float thresholdSqr = threshold * threshold;
 
-        while (pathIndex < currentPath.Count && advanced < maxAdvance)
+        Vector3 targetNode = currentPath[pathIndex];
+
+        Vector3 flattenedPosition = ownerTransform.position;
+        flattenedPosition.y = targetNode.y;
+
+        // STRICT node following.
+        // Enemy MUST fully reach node before advancing.
+        if ((flattenedPosition - targetNode).sqrMagnitude <= thresholdSqr)
         {
-            Vector3 target = currentPath[pathIndex];
-            if (Vector3.Distance(ownerTransform.position, target) >= nodeReachThreshold)
-                break;
-
+            ownerTransform.position = targetNode;
             pathIndex++;
-            advanced++;
         }
     }
-
-    /// <summary>
-    /// Updates path refresh timer for chase behavior
-    /// </summary>
     public void UpdatePathRefreshTimer()
     {
         pathTimer -= Time.deltaTime;
     }
 
-    /// <summary>
-    /// Checks if path needs refresh
-    /// </summary>
     public bool ShouldRefreshPath()
     {
         if (pathTimer <= 0f)
@@ -220,10 +199,19 @@ public class PathfindingSystem : MonoBehaviour
             pathTimer = pathRefreshRate;
             return true;
         }
+
         return false;
     }
 
     public float GetNodeReachThreshold() => nodeReachThreshold;
+
+    public Vector3 ClampToWalkableGrid(Vector3 worldPos)
+    {
+        if (masterGrid == null)
+            return worldPos;
+
+        return masterGrid.ClampToGridBounds(worldPos);
+    }
 
     private void BuildRoomMap()
     {
@@ -233,7 +221,6 @@ public class PathfindingSystem : MonoBehaviour
             if (node == null || !node.IsWalkable)
                 continue;
 
-            // Treat cells with 3+ blocked cardinal sides as enclosed room seeds.
             int blockedSides = CountBlockedCardinalSides(node);
             if (blockedSides >= roomSeedBlockedWallThreshold)
                 seedNodes.Add(node);
@@ -282,7 +269,6 @@ public class PathfindingSystem : MonoBehaviour
         int blocked = 0;
         List<Node> cardinal = GetCardinalNeighbors(node);
 
-        // Grid edge counts as blocked as well.
         if (cardinal.Count < 4)
             blocked += 4 - cardinal.Count;
 
@@ -310,7 +296,7 @@ public class PathfindingSystem : MonoBehaviour
 
             Vector3Int delta = n.GridPosition - node.GridPosition;
             int manhattan = Mathf.Abs(delta.x) + Mathf.Abs(delta.y) + Mathf.Abs(delta.z);
-            // Cardinal neighbors only: exactly 1-axis step, keep on same Y level.
+
             if (manhattan == 1 && delta.y == 0)
                 result.Add(n);
         }
@@ -340,11 +326,13 @@ public class PathfindingSystem : MonoBehaviour
     private List<Vector3> AStar(Vector3 targetPos)
     {
         if (masterGrid == null) return null;
+
         Node start = masterGrid.NodeFromWorld(ownerTransform.position);
         Node target = masterGrid.NodeFromWorld(targetPos);
         if (start == null || target == null) return null;
 
         foreach (var n in allNodes) n.ResetCosts();
+
         List<Node> openSet = new List<Node> { start };
         HashSet<Node> closedSet = new HashSet<Node>();
         start.GCost = 0;
@@ -354,8 +342,11 @@ public class PathfindingSystem : MonoBehaviour
             Node current = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FCost < current.FCost || (openSet[i].FCost == current.FCost && openSet[i].HCost < current.HCost))
+                if (openSet[i].FCost < current.FCost ||
+                    (openSet[i].FCost == current.FCost && openSet[i].HCost < current.HCost))
+                {
                     current = openSet[i];
+                }
             }
 
             openSet.Remove(current);
@@ -367,13 +358,16 @@ public class PathfindingSystem : MonoBehaviour
             foreach (var neighbor in GetNavigationNeighbors(current))
             {
                 if (neighbor == null || !neighbor.IsWalkable || closedSet.Contains(neighbor)) continue;
+
                 int newCost = current.GCost + GetStepCost(current, neighbor);
                 if (newCost < neighbor.GCost)
                 {
                     neighbor.GCost = newCost;
                     neighbor.HCost = GetHeuristicCost(neighbor, target);
                     neighbor.Parent = current;
-                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+
+                    if (!openSet.Contains(neighbor))
+                        openSet.Add(neighbor);
                 }
             }
         }
@@ -385,11 +379,13 @@ public class PathfindingSystem : MonoBehaviour
     {
         List<Vector3> path = new List<Vector3>();
         Node current = end;
+
         while (current != null && current != start)
         {
             path.Add(current.WorldPosition);
             current = current.Parent;
         }
+
         path.Reverse();
         return path;
     }
@@ -411,11 +407,8 @@ public class PathfindingSystem : MonoBehaviour
         bool diagonal = Mathf.Abs(step.x) == 1 && Mathf.Abs(step.z) == 1;
 
         int cost = diagonal ? 14 : 10;
-
-        // Prefer paths that stay slightly away from walls.
         cost += CountBlockedCardinalSides(neighbor) * wallProximityPenalty;
 
-        // Penalize repeated direction changes so movement feels less robotic.
         if (current.Parent != null)
         {
             Vector3Int prevDir = current.GridPosition - current.Parent.GridPosition;
@@ -450,7 +443,6 @@ public class PathfindingSystem : MonoBehaviour
 
             Vector3Int delta = neighbor.GridPosition - node.GridPosition;
 
-            // Keep navigation on the same Y layer for stable floor movement.
             if (delta.y != 0)
                 continue;
 
@@ -531,7 +523,6 @@ public class PathfindingSystem : MonoBehaviour
 
     private Color GetRoomColor(int roomId)
     {
-        // Deterministic hue per room for stable visualization across frames.
         float hue = Mathf.Repeat(roomId * 0.173f, 1f);
         return Color.HSVToRGB(hue, 0.8f, 1f);
     }
