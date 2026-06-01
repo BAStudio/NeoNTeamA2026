@@ -3,7 +3,8 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Pull Up Bar
   layers:
   - Default
   - TransparentFX
@@ -16,6 +17,7 @@ TagManager:
   - cimb
   - Enemy
   - Wall
+  - 
   - 
   - 
   - 

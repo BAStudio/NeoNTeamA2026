@@ -304,7 +304,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4788904288285165494}
   - component: {fileID: 7196341423704643015}
-  - component: {fileID: 5520198855813867790}
+  - component: {fileID: 1974986608865765638}
+  - component: {fileID: 3903822995113870291}
+  - component: {fileID: 5154081844160351060}
+  - component: {fileID: 7446483751506277286}
   m_Layer: 0
   m_Name: player met nodepad
   m_TagString: Player
@@ -341,7 +344,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RotatePlayer
   mouseSensitivity: 100
---- !u!114 &5520198855813867790
+  smoothTime: 0.08
+  swayAmount: 2.5
+  swaySmooth: 5
+--- !u!114 &1974986608865765638
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -350,9 +356,87 @@ MonoBehaviour:
   m_GameObject: {fileID: 2068605134738799629}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 610ab658cf7b5c142aed6f9dcb986534, type: 3}
+  m_Script: {fileID: 11500000, guid: 789c77674abcdab41bd3b749d822fec3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Movement
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  capsuleHeight: 2
+  capsuleRadius: 0.45
+  capsuleCenter: {x: 0, y: 0, z: 0}
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1536
+  gravityScale: 1
+  terminalVelocity: 20
+  groundCheckDistance: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  mass: 1
+  linearDrag: 6
+  skinWidth: 0.05
+  orientation: {fileID: 6212135055937976826}
+  moveSpeed: 2
+  sprintSpeed: 5
+  acceleration: 20
+  airControl: 0.4
+  jumpForce: 4
+--- !u!114 &3903822995113870291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2068605134738799629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af0e6c64e6a170f41b4fe5c05927fd90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSignalScanner
+  maxRadius: 12
+  minRadius: 4
+  expansionSpeed: 20
+  baseStrength: 1
+  velocityThreshold: 2
+  maxSpeedForFullSignal: 5
+  velocitySmoothing: 0.5
+  rayCount: 48
+  detectionLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  drawDebugRays: 1
+  drawGizmos: 1
+--- !u!114 &5154081844160351060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2068605134738799629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a10b8c62841893045a6bfc30935ed7c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDamageManager
+  maxHealth: 100
+  targetScene: {}
+--- !u!114 &7446483751506277286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2068605134738799629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ac3d06a63d7afe45b5cff3a8e64e686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FallDamage
+  damageAmount: 0
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  rayLength: 1.5
+  minimumFallTime: 0.5
 --- !u!1 &2551912272602922536
 GameObject:
   m_ObjectHideFlags: 0
@@ -381,8 +465,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2551912272602922536}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.0000010132788, z: -0, w: 1}
-  m_LocalPosition: {x: 0.000000029802322, y: 0.57200015, z: 0.000000014901161}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.61, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -504,8 +588,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a2c62e2aab789645b372f6584d06791, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCamera
+  playerBody: {fileID: 6212135055937976826}
   mouseSensitivity: 100
   verticalLookLimit: 90
+  smoothTime: 0.08
+  swayAmount: 2.5
+  swaySmooth: 5
+  bobPitchAmount: 0.7
+  bobSpeed: 2.5
+  randomStrength: 0.6
+  randomSmooth: 1.5
 --- !u!1 &2690778183011356608
 GameObject:
   m_ObjectHideFlags: 0
