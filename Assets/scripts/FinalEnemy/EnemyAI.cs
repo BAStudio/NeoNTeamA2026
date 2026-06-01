@@ -34,18 +34,6 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 6f;
     [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
 
-    [Header("Predictive Chasing")]
-    [SerializeField] private float predictionLookAhead = 0.5f; // How far ahead to predict player movement
-    [SerializeField] private float chasePathRefreshRate = 0.1f; // Faster refresh during chase (was 0.3f in pathfinding)
-
-    [Header("Room Patrol")]
-    [SerializeField] private float patrolScoutInterval = 9f;
-    [SerializeField, Range(0f, 1f)] private float patrolScoutOtherRoomChance = 0.35f;
-
-    [Header("Room/Search Look Around")]
-    [SerializeField, Range(0.5f, 10f)] private float lookAroundPauseDuration = 6f;
-    [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
-
     [Header("Debug")]
     [SerializeField] private bool verboseLogs = false;
     [SerializeField] private bool showOnScreenDebug = true;
@@ -64,17 +52,17 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     private Vector3 lastPlayerVelocity;
     private float signalTimer;
     private float signalCooldownTimer;
-    
+
     // Position history for memory-based search
     private List<Vector3> playerPositionHistory = new List<Vector3>();
     [SerializeField] private int maxPositionHistoryCount = 10;
     [SerializeField] private float positionHistoryUpdateInterval = 0.2f;
     private float positionHistoryTimer;
-    
+
     // Search state extensions
     private int searchAttempts;
     [SerializeField] private float searchTimeExtensionPerAttempt = 2f;
-    
+
     // Chase-specific timing
     private float chasePathTimer;
     private float patrolScoutTimer;
@@ -159,7 +147,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         stateManager.Update();
         bool canUseVision = CanUseVisionSense();
         bool seesPlayer = canUseVision && visionSystem.CanSeePlayer();
-        detectionMeter.Update(seesPlayer, stateManager.GetCurrentState());
+        detectionMeter.UpdateDetection(seesPlayer, stateManager.GetCurrentState());
 
         // Update position history for memory-based search
         if (player != null)
@@ -403,7 +391,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             lastSeenPosition = player.position;
         else
             stateManager.EnterSearch();
-        
+
         // Path recalculation is handled in FixedUpdate for consistent, smooth updates
     }
 

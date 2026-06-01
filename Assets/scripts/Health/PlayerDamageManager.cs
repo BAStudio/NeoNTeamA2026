@@ -1,9 +1,10 @@
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
 public class PlayerDamageManager : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
     private float currentHealth;
+    [SerializeField] private Scene targetScene;
 
     private void Awake()
     {
@@ -29,5 +30,8 @@ public class PlayerDamageManager : MonoBehaviour
     private void Die()
     {
         Debug.Log("Player died.");
+
+        SceneManager.LoadScene("YouLose");
+
     }
 }
