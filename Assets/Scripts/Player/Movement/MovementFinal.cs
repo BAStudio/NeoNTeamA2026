@@ -5,15 +5,25 @@ public class PlayerMovement : BasePhysics
 {
     [Header("References")]
     [SerializeField] private Transform orientation;
+    [SerializeField] private Transform playerVisual;
 
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float sprintSpeed = 12f;
+    [SerializeField] private float crouchSpeed = 4f;
     [SerializeField] private float acceleration = 20f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.4f;
 
-    public bool IsSprinting => isSprinting;
-    public float MovementIntensity => Mathf.Clamp01(new Vector2(currentVelocity.x, currentVelocity.z).magnitude / Mathf.Max(0.0001f, sprintSpeed));
+    [Header("Sprint")]
+    [SerializeField] private float sprintStaminaDrain = 1f;
+
+    [Header("Crouch")]
+    [SerializeField] private KeyCode crouchKey = KeyCode.LeftControl;
+    [SerializeField] private float crouchHeight = 0.5f;
+    [SerializeField] private float crouchTransitionSpeed = 8f;
+
+    private Vector3 originalVisualScale;
+    private bool isCrouching;
 
     [Header("Jump")]
     [SerializeField] private float jumpForce = 8f;
@@ -23,21 +33,21 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private LayerMask climbLayer;
     [SerializeField] private float wallDetectDistance = 1f;
     [SerializeField] private float climbSpeed = 4f;
-
     [SerializeField] private float chestHeight = 1f;
-    [SerializeField] private float headHeight = 1.8f;
+    [SerializeField] private float topRayHeight = 2f;
 
     [Header("Climb Stamina")]
-    [SerializeField] private float climbStaminaDrain = 0.5f;
+    [SerializeField] private float climbStaminaDrain = 1f;
 
     [Header("Ledge Grab")]
-    [SerializeField] private float ledgeCheckHeight = 2f;
+    [SerializeField] private float topSurfaceCheckDistance = 3f;
     [SerializeField] private float ledgeForwardOffset = 0.5f;
-
-    [SerializeField] private float hangOffsetDown = 1f;
-    [SerializeField] private float hangOffsetBack = 0.4f;
-
+    [SerializeField] private float hangOffsetDown = 1.2f;
+    [SerializeField] private float hangOffsetBack = 0.5f;
     [SerializeField] private float ledgeClimbDuration = 0.25f;
+
+    [Header("Ledge Stamina")]
+    [SerializeField] private float ledgeHangDrain = 0.75f;
 
     private enum MovementState
     {
@@ -50,14 +60,28 @@ public class PlayerMovement : BasePhysics
     private MovementState state = MovementState.Normal;
 
     private Vector3 inputDirection;
-    private bool isSprinting;
-
-    private PlayerStamina stamina;
-
     private Vector3 wallNormal;
     private Vector3 ledgeTargetPosition;
 
+    private bool isSprinting;
+    private PlayerStamina stamina;
     private Coroutine ledgeRoutine;
+
+    public bool IsSprinting => isSprinting;
+
+    public bool IsCrouching
+    {
+        get => isCrouching;
+        set => isCrouching = value;
+    }
+
+    protected override bool IsCrouchingForGrounding => IsCrouching;
+
+    public float MovementIntensity =>
+        Mathf.Clamp01(
+            new Vector2(currentVelocity.x, currentVelocity.z).magnitude /
+            Mathf.Max(0.0001f, sprintSpeed)
+        );
 
     protected override void Awake()
     {
@@ -66,35 +90,46 @@ public class PlayerMovement : BasePhysics
         stamina = PlayerStamina.Instance;
 
         if (orientation == null && Camera.main != null)
-            orientation = Camera.main.transform.parent;
+            orientation = Camera.main.transform;
+
+        if (playerVisual == null)
+            playerVisual = transform;
+
+        originalVisualScale = playerVisual.localScale;
     }
 
     protected override void Update()
     {
+        HandleInput();
+        HandleCrouch();
+
         base.Update();
 
         if (stamina == null)
             stamina = PlayerStamina.Instance;
-
-        HandleInput();
 
         switch (state)
         {
             case MovementState.Normal:
                 HandleMovement();
                 HandleJump();
-                HandleWallDetection();
+                HandleWallCheck();
                 break;
 
             case MovementState.Climbing:
                 HandleClimbing();
                 break;
+
+            case MovementState.LedgeGrab:
+                HandleLedgeGrab();
+                break;
+
+            case MovementState.ClimbUp:
+                currentVelocity = Vector3.zero;
+                break;
         }
 
         Vector3 moveDelta = currentVelocity * Time.deltaTime;
-
-        Debug.DrawRay(transform.position, moveDelta, Color.cyan);
-
         SafeMove(moveDelta);
     }
 
@@ -107,7 +142,7 @@ public class PlayerMovement : BasePhysics
 
         if (orientation == null)
         {
-            inputDirection = new Vector3(-h, 0f, -v).normalized;
+            inputDirection = new Vector3(h, 0f, v).normalized;
             return;
         }
 
@@ -120,20 +155,47 @@ public class PlayerMovement : BasePhysics
         forward.Normalize();
         right.Normalize();
 
-        inputDirection = (-forward * v - right * h).normalized;
+        inputDirection = (forward * v + right * h).normalized;
+    }
+
+    private void HandleCrouch()
+    {
+        IsCrouching = Input.GetKey(crouchKey);
+
+        Vector3 targetScale = originalVisualScale;
+        if (IsCrouching)
+            targetScale.y = crouchHeight;
+
+        playerVisual.localScale = Vector3.Lerp(
+            playerVisual.localScale,
+            targetScale,
+            crouchTransitionSpeed * Time.deltaTime
+        );
     }
 
     private void HandleMovement()
     {
         float control = IsGrounded ? 1f : airControl;
 
-        float currentSpeed =
-            isSprinting && IsGrounded
-            ? sprintSpeed
-            : moveSpeed;
+        bool canSprint =
+            isSprinting &&
+            !IsCrouching &&
+            IsGrounded &&
+            inputDirection.magnitude > 0f &&
+            stamina != null &&
+            stamina.stamina > 0f;
 
-        Vector3 targetVelocity =
-            inputDirection * currentSpeed;
+        if (canSprint)
+        {
+            stamina.ConsumeStamina(sprintStaminaDrain * Time.deltaTime);
+        }
+
+        float currentSpeed =
+            IsCrouching ? crouchSpeed :
+            canSprint ? sprintSpeed :
+            moveSpeed;
+
+        Vector3 targetVelocity = inputDirection * currentSpeed;
 
         currentVelocity.x = Mathf.MoveTowards(
             currentVelocity.x,
@@ -150,6 +212,9 @@ public class PlayerMovement : BasePhysics
 
     private void HandleJump()
     {
+        if (IsCrouching)
+            return;
+
         if (stamina == null)
             return;
 
@@ -158,64 +223,54 @@ public class PlayerMovement : BasePhysics
             stamina.stamina >= jumpStaminaCost)
         {
             stamina.ConsumeStamina(jumpStaminaCost);
-
             currentVelocity.y = 0f;
-
             ApplyImpulse(Vector3.up * jumpForce);
         }
     }
 
-    private void HandleWallDetection()
+    private void HandleWallCheck()
     {
         if (!Input.GetKey(KeyCode.Space))
+            return;
+
+        if (IsGrounded)
+            return;
+
+        if (IsCrouching)
             return;
 
         if (stamina == null || stamina.stamina <= 0f)
             return;
 
-        Vector3 chestOrigin =
-            transform.position +
-            Vector3.up * chestHeight;
+        Vector3 lowerRayOrigin = transform.position + Vector3.up * chestHeight;
+        Vector3 upperRayOrigin = transform.position + Vector3.up * topRayHeight;
 
-        Vector3 headOrigin =
-            transform.position +
-            Vector3.up * headHeight;
+        Debug.DrawRay(lowerRayOrigin, transform.forward * wallDetectDistance, Color.red);
+        Debug.DrawRay(upperRayOrigin, transform.forward * wallDetectDistance, Color.yellow);
 
-        Debug.DrawRay(
-            chestOrigin,
-            transform.forward * wallDetectDistance,
-            Color.red
-        );
-
-        Debug.DrawRay(
-            headOrigin,
-            transform.forward * wallDetectDistance,
-            Color.yellow
-        );
-
-        bool chestHit = Physics.Raycast(
-            chestOrigin,
+        bool lowerHit = Physics.Raycast(
+            lowerRayOrigin,
             transform.forward,
-            out RaycastHit chestInfo,
+            out RaycastHit wallHit,
             wallDetectDistance,
             climbLayer
         );
 
-        bool headHit = Physics.Raycast(
-            headOrigin,
+        bool upperHit = Physics.Raycast(
+            upperRayOrigin,
             transform.forward,
             wallDetectDistance,
             climbLayer
         );
 
-        if (!chestHit)
+        if (!lowerHit)
             return;
 
-        wallNormal = chestInfo.normal;
+        wallNormal = wallHit.normal;
 
-        if (!headHit)
+        if (!upperHit)
         {
-            TryLedgeGrab(chestInfo);
+            TryLedgeGrab(wallHit);
             return;
         }
 
@@ -225,7 +280,6 @@ public class PlayerMovement : BasePhysics
     private void StartClimbing()
     {
         state = MovementState.Climbing;
-
         currentVelocity.x = 0f;
         currentVelocity.z = 0f;
     }
@@ -233,7 +287,9 @@ public class PlayerMovement : BasePhysics
     private void StopClimbing()
     {
         if (state == MovementState.Climbing)
+        {
             state = MovementState.Normal;
+        }
     }
 
     private void HandleClimbing()
@@ -250,111 +306,120 @@ public class PlayerMovement : BasePhysics
             return;
         }
 
-        Vector3 chestOrigin =
-            transform.position +
-            Vector3.up * chestHeight;
+        Vector3 lowerRayOrigin = transform.position + Vector3.up * chestHeight;
+        Vector3 upperRayOrigin = transform.position + Vector3.up * topRayHeight;
 
-        Debug.DrawRay(
-            chestOrigin,
-            transform.forward * wallDetectDistance,
-            Color.green
-        );
-
-        bool wallStillExists = Physics.Raycast(
-            chestOrigin,
+        bool lowerHit = Physics.Raycast(
+            lowerRayOrigin,
             transform.forward,
-            out RaycastHit wallInfo,
+            out RaycastHit wallHit,
             wallDetectDistance,
             climbLayer
         );
 
-        if (!wallStillExists)
+        if (!lowerHit)
         {
             StopClimbing();
             return;
         }
 
-        stamina.ConsumeStamina(
-            climbStaminaDrain * Time.deltaTime
-        );
+        stamina.ConsumeStamina(climbStaminaDrain * Time.deltaTime);
 
         currentVelocity.x = 0f;
         currentVelocity.z = 0f;
         currentVelocity.y = climbSpeed;
 
-        Vector3 headOrigin =
-            transform.position +
-            Vector3.up * headHeight;
+        wallNormal = wallHit.normal;
 
-        Debug.DrawRay(
-            headOrigin,
-            transform.forward * wallDetectDistance,
-            Color.magenta
-        );
-
-        bool headHit = Physics.Raycast(
-            headOrigin,
+        bool upperHit = Physics.Raycast(
+            upperRayOrigin,
             transform.forward,
             wallDetectDistance,
             climbLayer
         );
 
-        if (!headHit)
+        if (!upperHit)
         {
-            TryLedgeGrab(wallInfo);
+            TryLedgeGrab(wallHit);
         }
     }
 
     private void TryLedgeGrab(RaycastHit wallHit)
     {
-        Vector3 topCheckOrigin =
+        Vector3 topOrigin =
             wallHit.point +
-            Vector3.up * ledgeCheckHeight +
-            wallNormal * ledgeForwardOffset;
+            Vector3.up * topRayHeight +
+            transform.forward * ledgeForwardOffset;
 
         Debug.DrawRay(
-            topCheckOrigin,
-            Vector3.down * ledgeCheckHeight,
+            topOrigin,
+            Vector3.down * topSurfaceCheckDistance,
             Color.blue
         );
 
-        if (Physics.Raycast(
-            topCheckOrigin,
+        bool foundTop = Physics.Raycast(
+            topOrigin,
             Vector3.down,
             out RaycastHit topHit,
-            ledgeCheckHeight,
-            climbLayer))
-        {
-            EnterLedgeGrab(topHit.point);
-        }
+            topSurfaceCheckDistance,
+            climbLayer
+        );
+
+        if (!foundTop)
+            return;
+
+        EnterLedgeGrab(topHit.point);
     }
 
     private void EnterLedgeGrab(Vector3 ledgePoint)
     {
-        if (state == MovementState.LedgeGrab ||
-            state == MovementState.ClimbUp)
+        if (state == MovementState.LedgeGrab || state == MovementState.ClimbUp)
             return;
 
         state = MovementState.LedgeGrab;
-
         currentVelocity = Vector3.zero;
 
         Vector3 hangPosition =
-            ledgePoint +
-            wallNormal * hangOffsetBack +
-            Vector3.down * hangOffsetDown;
+            ledgePoint -
+            transform.forward * hangOffsetBack -
+            Vector3.up * hangOffsetDown;
 
         transform.position = hangPosition;
 
-        ledgeTargetPosition =
-            ledgePoint +
-            Vector3.up * 1f +
-            wallNormal * 0.75f;
+        ledgeTargetPosition = ledgePoint + Vector3.up * 1f;
+    }
 
-        if (ledgeRoutine == null)
+    private void HandleLedgeGrab()
+    {
+        currentVelocity = Vector3.zero;
+
+        if (stamina != null)
+        {
+            stamina.ConsumeStamina(ledgeHangDrain * Time.deltaTime);
+
+            if (stamina.stamina <= 0f)
+            {
+                ReleaseLedgeGrab();
+                return;
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && ledgeRoutine == null)
         {
             ledgeRoutine = StartCoroutine(ClimbUpLedge());
+            return;
         }
+
+        if (Input.GetKeyDown(crouchKey))
+        {
+            ReleaseLedgeGrab();
+        }
+    }
+
+    private void ReleaseLedgeGrab()
+    {
+        state = MovementState.Normal;
+        currentVelocity = Vector3.zero;
     }
 
     private IEnumerator ClimbUpLedge()
@@ -362,28 +427,20 @@ public class PlayerMovement : BasePhysics
         state = MovementState.ClimbUp;
 
         Vector3 startPos = transform.position;
-
         float timer = 0f;
 
         while (timer < ledgeClimbDuration)
         {
             timer += Time.deltaTime;
-
             float t = timer / ledgeClimbDuration;
 
-            transform.position = Vector3.Lerp(
-                startPos,
-                ledgeTargetPosition,
-                t
-            );
-
+            transform.position = Vector3.Lerp(startPos, ledgeTargetPosition, t);
             yield return null;
         }
 
         transform.position = ledgeTargetPosition;
 
         state = MovementState.Normal;
-
         ledgeRoutine = null;
     }
 }
