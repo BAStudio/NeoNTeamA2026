@@ -977,8 +977,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9221187931732010161, guid: 2264355be4cef694282c3fdd2dcce224, type: 3}
+      propertyPath: showNodes
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9221187931732010161, guid: 2264355be4cef694282c3fdd2dcce224, type: 3}
       propertyPath: gridSize.y
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9221187931732010161, guid: 2264355be4cef694282c3fdd2dcce224, type: 3}
+      propertyPath: gizmoColor.a
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
