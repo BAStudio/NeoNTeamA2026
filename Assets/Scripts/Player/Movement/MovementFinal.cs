@@ -39,6 +39,8 @@ public class PlayerMovement : BasePhysics
 
     [SerializeField] private float ledgeClimbDuration = 0.25f;
 
+    private bool _allowedToMove = true;
+
     private enum MovementState
     {
         Normal,
@@ -58,6 +60,12 @@ public class PlayerMovement : BasePhysics
     private Vector3 ledgeTargetPosition;
 
     private Coroutine ledgeRoutine;
+
+    private void Start()
+    {
+        NotePad.StopMovement += StopMovement;
+        NotePad.ContinueMovement += ContinueMovement;
+    }
 
     protected override void Awake()
     {
@@ -96,6 +104,11 @@ public class PlayerMovement : BasePhysics
         Debug.DrawRay(transform.position, moveDelta, Color.cyan);
 
         SafeMove(moveDelta);
+
+        if(!_allowedToMove)
+        {
+            StoppingMovenent();
+        }
     }
 
     private void HandleInput()
@@ -385,5 +398,23 @@ public class PlayerMovement : BasePhysics
         state = MovementState.Normal;
 
         ledgeRoutine = null;
+    }
+    private void StopMovement()
+    {
+        _allowedToMove = false;
+    }
+
+    private void ContinueMovement()
+    {
+        _allowedToMove = true;
+
+        acceleration = 20f;
+    }
+
+    private void StoppingMovenent()
+    {
+        currentVelocity = Vector3.zero;
+
+        acceleration = 0f;
     }
 }

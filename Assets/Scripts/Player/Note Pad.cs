@@ -2,8 +2,9 @@ using System;
 using TMPro;
 using UnityEngine;
 
-public class NotePad_ : MonoBehaviour
+public class NotePad : MonoBehaviour
 {
+
     [SerializeField] private GameObject _notePad;
 
     [SerializeField] private TextMeshPro _noteText; // Assign in Inspector
@@ -53,6 +54,7 @@ public class NotePad_ : MonoBehaviour
 
                 ContinueMovement?.Invoke();
             }
+
         }
 
         // Lerp position every frame if moving
@@ -88,5 +90,10 @@ public class NotePad_ : MonoBehaviour
             }
             _noteText.text = _notePadText;
         }
+    }
+
+    private void NotePadStopMovement()
+    {
+        throw new NotImplementedException();
     }
 }
