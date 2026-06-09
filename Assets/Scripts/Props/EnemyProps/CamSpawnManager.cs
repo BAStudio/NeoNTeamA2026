@@ -6,8 +6,6 @@ public class CamSpawnManager : MonoBehaviour
     [Header("Spawn Point Tag")]
     public string spawnPointTag = "cam spawn point";
 
-    [Header("Debug")]
-    [SerializeField]
     private List<CamSpawnPoint> spawnPoints =
         new List<CamSpawnPoint>();
 
@@ -33,30 +31,34 @@ public class CamSpawnManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"CamSpawnManager found {spawnPoints.Count} spawn points.");
+        Debug.Log($"Found {spawnPoints.Count} spawn points.");
     }
 
-    public Transform GetRandomSpawnPoint()
+    public CamSpawnPoint GetRandomFreeSpawnPoint()
     {
-        if (spawnPoints.Count == 0)
-        {
-            Debug.LogWarning("No spawn points found.");
-            return null;
-        }
+        List<CamSpawnPoint> freePoints =
+            new List<CamSpawnPoint>();
 
         float totalWeight = 0f;
 
         foreach (CamSpawnPoint point in spawnPoints)
         {
-            if (point != null && point.weight > 0f)
-            {
-                totalWeight += point.weight;
-            }
+            if (point == null)
+                continue;
+
+            if (point.occupied)
+                continue;
+
+            if (point.weight <= 0f)
+                continue;
+
+            freePoints.Add(point);
+            totalWeight += point.weight;
         }
 
-        if (totalWeight <= 0f)
+        if (freePoints.Count == 0)
         {
-            Debug.LogWarning("All spawn point weights are zero.");
+            Debug.LogWarning("No free spawn points available.");
             return null;
         }
 
@@ -64,19 +66,16 @@ public class CamSpawnManager : MonoBehaviour
 
         float currentWeight = 0f;
 
-        foreach (CamSpawnPoint point in spawnPoints)
+        foreach (CamSpawnPoint point in freePoints)
         {
-            if (point == null || point.weight <= 0f)
-                continue;
-
             currentWeight += point.weight;
 
             if (randomValue <= currentWeight)
             {
-                return point.transform;
+                return point;
             }
         }
 
-        return spawnPoints[0].transform;
+        return freePoints[0];
     }
 }

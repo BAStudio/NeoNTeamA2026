@@ -14,10 +14,6 @@ public class CamSpawner : MonoBehaviour
 
     public float spawnInterval = 5f;
 
-    [Header("Limits")]
-    public int maxSpawnedCams = 10;
-
-    private int currentSpawned;
     private float timer;
 
     private void Start()
@@ -31,9 +27,6 @@ public class CamSpawner : MonoBehaviour
     private void Update()
     {
         if (!repeatSpawn)
-            return;
-
-        if (currentSpawned >= maxSpawnedCams)
             return;
 
         timer += Time.deltaTime;
@@ -59,7 +52,8 @@ public class CamSpawner : MonoBehaviour
             return;
         }
 
-        Transform spawnPoint = spawnManager.GetRandomSpawnPoint();
+        CamSpawnPoint spawnPoint =
+            spawnManager.GetRandomFreeSpawnPoint();
 
         if (spawnPoint == null)
             return;
@@ -67,12 +61,20 @@ public class CamSpawner : MonoBehaviour
         GameObject selectedCam =
             camPrefabs[Random.Range(0, camPrefabs.Length)];
 
-        Instantiate(
+        GameObject spawnedCam = Instantiate(
             selectedCam,
-            spawnPoint.position,
-            spawnPoint.rotation
+            spawnPoint.transform.position,
+            spawnPoint.transform.rotation
         );
 
-        currentSpawned++;
+        spawnPoint.occupied = true;
+
+        CamInstance camInstance =
+            spawnedCam.GetComponent<CamInstance>();
+
+        if (camInstance != null)
+        {
+            camInstance.spawnPoint = spawnPoint;
+        }
     }
 }

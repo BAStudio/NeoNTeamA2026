@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Pull Up Bar
   - Enemy
+  - cam spawn point
   layers:
   - Default
   - TransparentFX
