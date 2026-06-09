@@ -10,7 +10,7 @@ public class PlayerMovement : BasePhysics
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float sprintSpeed = 12f;
-    [SerializeField] private float crouchSpeed = 4f;
+    [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float acceleration = 20f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.4f;
 
@@ -49,6 +49,8 @@ public class PlayerMovement : BasePhysics
     [Header("Ledge Stamina")]
     [SerializeField] private float ledgeHangDrain = 0.75f;
 
+    private bool allowedToMove = true;
+
     private enum MovementState
     {
         Normal,
@@ -68,12 +70,18 @@ public class PlayerMovement : BasePhysics
     private Coroutine ledgeRoutine;
 
     public bool IsSprinting => isSprinting;
-
     public bool IsCrouching
     {
         get => isCrouching;
         set => isCrouching = value;
     }
+
+    public float CurrentHorizontalSpeed =>
+        new Vector3(currentVelocity.x, 0f, currentVelocity.z).magnitude;
+
+    public float MoveSpeed => moveSpeed;
+    public float SprintSpeed => sprintSpeed;
+    public float CrouchSpeed => Mathf.Min(crouchSpeed, moveSpeed);
 
     protected override bool IsCrouchingForGrounding => IsCrouching;
 
@@ -82,6 +90,12 @@ public class PlayerMovement : BasePhysics
             new Vector2(currentVelocity.x, currentVelocity.z).magnitude /
             Mathf.Max(0.0001f, sprintSpeed)
         );
+
+    private void Start()
+    {
+        NotePad.StopMovement += StopMovement;
+        NotePad.ContinueMovement += ContinueMovement;
+    }
 
     protected override void Awake()
     {
@@ -131,6 +145,11 @@ public class PlayerMovement : BasePhysics
 
         Vector3 moveDelta = currentVelocity * Time.deltaTime;
         SafeMove(moveDelta);
+
+        if (!allowedToMove)
+        {
+            StoppingMovenent();
+        }
     }
 
     private void HandleInput()
@@ -155,7 +174,7 @@ public class PlayerMovement : BasePhysics
         forward.Normalize();
         right.Normalize();
 
-        inputDirection = (forward * v + right * h).normalized;
+        inputDirection = (forward * -v + right * -h).normalized;
     }
 
     private void HandleCrouch()
@@ -177,11 +196,13 @@ public class PlayerMovement : BasePhysics
     {
         float control = IsGrounded ? 1f : airControl;
 
+        float effectiveCrouchSpeed = Mathf.Min(crouchSpeed, moveSpeed);
+
         bool canSprint =
             isSprinting &&
             !IsCrouching &&
             IsGrounded &&
-            inputDirection.magnitude > 0f &&
+            inputDirection.sqrMagnitude > 0.001f &&
             stamina != null &&
             stamina.stamina > 0f;
 
@@ -191,7 +212,7 @@ public class PlayerMovement : BasePhysics
         }
 
         float currentSpeed =
-            IsCrouching ? crouchSpeed :
+            IsCrouching ? effectiveCrouchSpeed :
             canSprint ? sprintSpeed :
             moveSpeed;
 
@@ -442,5 +463,22 @@ public class PlayerMovement : BasePhysics
 
         state = MovementState.Normal;
         ledgeRoutine = null;
+    }
+
+    private void StopMovement()
+    {
+        allowedToMove = false;
+    }
+
+    private void ContinueMovement()
+    {
+        allowedToMove = true;
+        acceleration = 20f;
+    }
+
+    private void StoppingMovenent()
+    {
+        currentVelocity = Vector3.zero;
+        acceleration = 0f;
     }
 }

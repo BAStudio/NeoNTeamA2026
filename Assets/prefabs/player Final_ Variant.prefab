@@ -13,8 +13,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8734834085294892912}
     - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: terminalVelocity
+      value: 20.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: climbLayer.m_Bits
       value: 1024
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: groundLayers.m_Bits
+      value: 192
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: obstacleLayers.m_Bits
+      value: 1664
       objectReference: {fileID: 0}
     - target: {fileID: 2068605134738799629, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_Name
@@ -26,7 +38,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4788904288285165494, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.24
+      value: 40.6
       objectReference: {fileID: 0}
     - target: {fileID: 4788904288285165494, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_LocalPosition.y
@@ -34,7 +46,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4788904288285165494, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -5.56
+      value: 21.6
       objectReference: {fileID: 0}
     - target: {fileID: 4788904288285165494, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_LocalRotation.w
@@ -104,7 +116,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 89443669ba3404d4ba78f8fc478e76f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeadBobbbing
-  player: {fileID: 7888100557838342460}
+  player: {fileID: 8734834085294892912}
   walkBobSpeed: 3.5
   runBobSpeed: 5.5
   walkBobAmount: 0.03
@@ -114,7 +126,7 @@ MonoBehaviour:
   inertiaInfluence: 1.5
   rollAmount: 8
   rollSmooth: 2.5
-  swayAmount: 0.04
+  swayAmount: 0.46
   swaySmooth: 2
   idleSpeed: 1
   idleAmount: 0.015
@@ -193,11 +205,6 @@ Rigidbody:
 --- !u!4 &7688676429790201088 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5025481448153848714, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
-  m_PrefabInstance: {fileID: 3390562605341269642}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &7888100557838342460 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4788904288285165494, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
   m_PrefabInstance: {fileID: 3390562605341269642}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8734834085294892912 stripped

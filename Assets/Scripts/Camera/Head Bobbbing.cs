@@ -2,140 +2,128 @@ using UnityEngine;
 
 public class HeadBobbbing : MonoBehaviour
 {
-    [SerializeField] private Transform player;
+    [SerializeField] private PlayerMovement movement;
 
     [Header("Movement Bob")]
-    [SerializeField] private float walkBobSpeed = 3.5f;
-    [SerializeField] private float runBobSpeed = 5.5f;
+    [SerializeField] private float walkBobSpeed = 6f;
+    [SerializeField] private float sprintBobSpeed = 9f;
+    [SerializeField] private float crouchBobSpeed = 3f;
 
-    [SerializeField] private float walkBobAmount = 0.03f;
-    [SerializeField] private float runBobAmount = 0.06f;
-
-    [Header("Heavy Feel")]
-    [SerializeField] private float positionSmooth = 4f;
-    [SerializeField] private float rotationSmooth = 3f;
-
-    [SerializeField] private float inertiaInfluence = 1.5f;
-
-    [Header("Look Roll (IMPORTANT)")]
-    [SerializeField] private float rollAmount = 8f;   
-    [SerializeField] private float rollSmooth = 2.5f;
-
-    [Header("Sway (side weight shift)")]
-    [SerializeField] private float swayAmount = 0.04f;
-    [SerializeField] private float swaySmooth = 2f;
+    [SerializeField] private float walkBobAmount = 0.04f;
+    [SerializeField] private float sprintBobAmount = 0.07f;
+    [SerializeField] private float crouchBobAmount = 0.02f;
 
     [Header("Idle Breathing")]
     [SerializeField] private float idleSpeed = 1f;
     [SerializeField] private float idleAmount = 0.015f;
 
-    private Rigidbody playerRb;
+    [Header("Look Roll")]
+    [SerializeField] private float rollAmount = 5f;
+    [SerializeField] private float rollSmooth = 8f;
+
+    [Header("Smoothing")]
+    [SerializeField] private float positionSmooth = 10f;
 
     private Vector3 startPos;
     private Quaternion startRot;
 
     private float bobTimer;
     private float idleTimer;
-
     private float currentRoll;
-    private float targetRoll;
 
-    private float swayX;
-    private float targetSwayX;
-
-    private Vector3 lastVelocity;
-
-    void Start()
+    private void Start()
     {
         startPos = transform.localPosition;
         startRot = transform.localRotation;
 
-        playerRb = player.GetComponent<Rigidbody>();
+        if (movement == null)
+            movement = GetComponentInParent<PlayerMovement>();
     }
 
-    void Update()
+    private void Update()
     {
-        if (!playerRb) return;
+        if (movement == null)
+            return;
 
-        Vector3 velocity = playerRb.linearVelocity;
-        Vector3 horizontal = new Vector3(velocity.x, 0, velocity.z);
-
-        float speed = horizontal.magnitude;
-        bool isMoving = speed > 0.1f;
-        bool isRunning = speed > 10f;
-
-        HandleLookRoll();
-        HandleMovement(horizontal, isMoving, isRunning);
+        HandleRotation();
+        HandleHeadbob();
     }
 
-    private void HandleLookRoll()
+    private void HandleRotation()
     {
         float mouseX = Input.GetAxis("Mouse X");
+        float targetRoll = -mouseX * rollAmount;
 
-        float moveSpeedFactor = playerRb.linearVelocity.magnitude * 0.02f;
-
-        targetRoll = -mouseX * rollAmount * (1f + moveSpeedFactor);
-
-        currentRoll = Mathf.Lerp(currentRoll, targetRoll, Time.deltaTime * rollSmooth);
-
-        targetSwayX = mouseX * swayAmount;
-        swayX = Mathf.Lerp(swayX, targetSwayX, Time.deltaTime * swaySmooth);
-
-        transform.localRotation = startRot * Quaternion.Euler(
-            0f,
-            0f,
-            currentRoll
+        currentRoll = Mathf.Lerp(
+            currentRoll,
+            targetRoll,
+            Time.deltaTime * rollSmooth
         );
+
+        transform.localRotation = startRot * Quaternion.Euler(0f, 0f, currentRoll);
     }
 
-    private void HandleMovement(Vector3 horizontal, bool isMoving, bool isRunning)
+    private void HandleHeadbob()
     {
-        if (isMoving)
+        float speed = movement.CurrentHorizontalSpeed;
+        bool isMoving = speed > 0.1f;
+
+        if (!isMoving)
         {
-            idleTimer = 0f;
+            IdleBob();
+            return;
+        }
 
-            bobTimer += Time.deltaTime * (isRunning ? runBobSpeed : walkBobSpeed);
+        bool isCrouching = movement.IsCrouching;
+        bool isSprinting = !isCrouching && movement.IsSprinting && speed > movement.MoveSpeed * 0.85f;
 
-            float bobAmount = isRunning ? runBobAmount : walkBobAmount;
+        float bobSpeed;
+        float bobAmount;
 
-            float bobY = Mathf.Abs(Mathf.Sin(bobTimer)) * bobAmount;
-            float bobX = Mathf.Sin(bobTimer * 0.5f) * swayAmount;
-
-            float inertia = horizontal.magnitude * 0.01f;
-
-            Vector3 targetPos = startPos + new Vector3(
-                bobX + swayX,
-                bobY - inertia * inertiaInfluence,
-                0f
-            );
-
-            transform.localPosition = Vector3.Lerp(
-                transform.localPosition,
-                targetPos,
-                Time.deltaTime * positionSmooth
-            );
+        if (isCrouching)
+        {
+            bobSpeed = crouchBobSpeed;
+            bobAmount = crouchBobAmount;
+        }
+        else if (isSprinting)
+        {
+            bobSpeed = sprintBobSpeed;
+            bobAmount = sprintBobAmount;
         }
         else
         {
-            ApplyIdle();
+            bobSpeed = walkBobSpeed;
+            bobAmount = walkBobAmount;
         }
+
+        bobTimer += Time.deltaTime * bobSpeed;
+
+        float bobY = Mathf.Sin(bobTimer) * bobAmount;
+        float bobX = Mathf.Cos(bobTimer * 0.5f) * bobAmount * 0.5f;
+
+        Vector3 targetPos = startPos + new Vector3(bobX, Mathf.Abs(bobY), 0f);
+
+        transform.localPosition = Vector3.Lerp(
+            transform.localPosition,
+            targetPos,
+            Time.deltaTime * positionSmooth
+        );
     }
 
-    private void ApplyIdle()
+    private void IdleBob()
     {
         idleTimer += Time.deltaTime * idleSpeed;
 
-        float breathY = Mathf.Sin(idleTimer) * idleAmount;
-        float breathX = Mathf.Sin(idleTimer * 0.5f) * idleAmount;
-
-        Vector3 idleOffset = new Vector3(breathX, breathY, 0);
+        Vector3 idleOffset = new Vector3(
+            Mathf.Sin(idleTimer * 0.5f) * idleAmount,
+            Mathf.Sin(idleTimer) * idleAmount,
+            0f
+        );
 
         transform.localPosition = Vector3.Lerp(
             transform.localPosition,
             startPos + idleOffset,
-            Time.deltaTime * 2.5f
+            Time.deltaTime * positionSmooth
         );
-
-        currentRoll = Mathf.Lerp(currentRoll, 0f, Time.deltaTime * 2f);
     }
 }
