@@ -48,7 +48,9 @@ public class PlayerMovement : BasePhysics
 
     [Header("Ledge Stamina")]
     [SerializeField] private float ledgeHangDrain = 0.75f;
+
     private bool allowedToMove = true;
+
     private enum MovementState
     {
         Normal,
@@ -68,12 +70,18 @@ public class PlayerMovement : BasePhysics
     private Coroutine ledgeRoutine;
 
     public bool IsSprinting => isSprinting;
-
     public bool IsCrouching
     {
         get => isCrouching;
         set => isCrouching = value;
     }
+
+    public float CurrentHorizontalSpeed =>
+        new Vector3(currentVelocity.x, 0f, currentVelocity.z).magnitude;
+
+    public float MoveSpeed => moveSpeed;
+    public float SprintSpeed => sprintSpeed;
+    public float CrouchSpeed => Mathf.Min(crouchSpeed, moveSpeed);
 
     protected override bool IsCrouchingForGrounding => IsCrouching;
 
@@ -188,11 +196,13 @@ public class PlayerMovement : BasePhysics
     {
         float control = IsGrounded ? 1f : airControl;
 
+        float effectiveCrouchSpeed = Mathf.Min(crouchSpeed, moveSpeed);
+
         bool canSprint =
             isSprinting &&
             !IsCrouching &&
             IsGrounded &&
-            inputDirection.magnitude > 0f &&
+            inputDirection.sqrMagnitude > 0.001f &&
             stamina != null &&
             stamina.stamina > 0f;
 
@@ -202,7 +212,7 @@ public class PlayerMovement : BasePhysics
         }
 
         float currentSpeed =
-            IsCrouching ? crouchSpeed :
+            IsCrouching ? effectiveCrouchSpeed :
             canSprint ? sprintSpeed :
             moveSpeed;
 
@@ -287,7 +297,6 @@ public class PlayerMovement : BasePhysics
 
         StartClimbing();
     }
-
 
     private void StartClimbing()
     {
@@ -464,15 +473,12 @@ public class PlayerMovement : BasePhysics
     private void ContinueMovement()
     {
         allowedToMove = true;
-
         acceleration = 20f;
     }
 
     private void StoppingMovenent()
     {
         currentVelocity = Vector3.zero;
-
         acceleration = 0f;
     }
-
 }
