@@ -314,7 +314,7 @@ public class BasePhysics : MonoBehaviour
 
     protected virtual void OnKnockbackEnded() { }
 
-    public virtual void StopMovement()
+    public virtual void StopMoving()
     {
         currentVelocity = Vector3.zero;
         if (knockbackRoutine != null)
