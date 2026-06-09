@@ -17,7 +17,7 @@ public class Door : MonoBehaviour
 
     [SerializeField] private float _doorCloseAudioDelay = 0f;
 
-    [SerializeField] private bool _doorOpen;
+    [SerializeField] private bool _doorStartsOpen;
 
     private enum State
     {
@@ -38,32 +38,36 @@ public class Door : MonoBehaviour
 
     void Update()
     {
-        if (_doorOpen && _currentState != State.Open)
+        if (_doorStartsOpen && _currentState != State.Open)
         {
             OpenDoor();
         }
-        else if (!_doorOpen && _currentState != State.Closed)
+        else if (!_doorStartsOpen && _currentState != State.Closed)
         {
             CloseDoor();
         }
     }
 
-    private void OpenDoor()
+    public void OpenDoor()
     {
         _doorAnimator.SetBool("Door Open", true);
 
         StartCoroutine(PlayAudioAfterDelay(_doorOpenAudioClip, _doorOpenAudioDelay));
 
         _currentState = State.Open;
+
+        _doorStartsOpen = true;
     }
 
-    private void CloseDoor()
+    public void CloseDoor()
     {
         _doorAnimator.SetBool("Door Open", false);
 
         StartCoroutine(PlayAudioAfterDelay(_doorCloseAudioClip, _doorCloseAudioDelay));
 
         _currentState = State.Closed;
+
+        _doorStartsOpen = false;
     }
 
     private IEnumerator PlayAudioAfterDelay(AudioClip clip, float delay)
