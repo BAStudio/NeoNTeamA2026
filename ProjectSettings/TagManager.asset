@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - Pull Up Bar
+  - Enemy
+  - cam spawn point
   layers:
   - Default
   - TransparentFX
@@ -13,11 +15,10 @@ TagManager:
   - Water
   - UI
   - Ground
-  - 
+  - Object
   - cimb
   - Enemy
   - Wall
-  - 
   - 
   - 
   - 

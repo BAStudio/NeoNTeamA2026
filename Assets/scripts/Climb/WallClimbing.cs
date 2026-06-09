@@ -29,6 +29,7 @@ public class WallClimbing : MonoBehaviour
     [SerializeField] private float standBackOffset = 0.55f;
     [SerializeField] private float standUpOffset = 1.2f;
     [SerializeField] private float ledgeClimbDuration = 0.25f;
+    [SerializeField] private float ledgeGrabTimeout = 10f;
 
     private ClimbState state = ClimbState.None;
     private Rigidbody rb;
@@ -37,6 +38,7 @@ public class WallClimbing : MonoBehaviour
     private Vector3 wallNormal = Vector3.forward;
     private Vector3 ledgeHangPoint;
     private Vector3 ledgeStandPoint;
+    private float ledgeGrabTimer;
     private Coroutine climbUpRoutine;
 
     private void Start()
@@ -60,6 +62,9 @@ public class WallClimbing : MonoBehaviour
         if (playerStamina == null)
             return;
 
+        if (climbUpRoutine != null)
+            return;
+
         bool spaceHeld = Input.GetKey(KeyCode.Space);
         bool spaceDown = Input.GetKeyDown(KeyCode.Space);
 
@@ -68,7 +73,23 @@ public class WallClimbing : MonoBehaviour
             if (spaceDown && climbUpRoutine == null)
             {
                 climbUpRoutine = StartCoroutine(ClimbUpLedge());
+                return;
             }
+
+            if (Input.anyKey)
+            {
+                ledgeGrabTimer = 0f;
+            }
+            else
+            {
+                ledgeGrabTimer += Time.deltaTime;
+
+                if (ledgeGrabTimer >= ledgeGrabTimeout)
+                {
+                    StopClimbing();
+                }
+            }
+
             return;
         }
 
@@ -158,6 +179,7 @@ public class WallClimbing : MonoBehaviour
     private void EnterLedgeGrab(Vector3 topPoint)
     {
         state = ClimbState.LedgeGrab;
+        ledgeGrabTimer = 0f;
 
         rb.linearVelocity = Vector3.zero;
         rb.useGravity = false;
@@ -218,6 +240,7 @@ public class WallClimbing : MonoBehaviour
 
         rb.useGravity = true;
         climbUpRoutine = null;
+        ledgeGrabTimer = 0f;
 
         OnWallClimb?.Invoke(false);
     }
