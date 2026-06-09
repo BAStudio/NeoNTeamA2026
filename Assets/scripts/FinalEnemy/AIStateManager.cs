@@ -50,6 +50,11 @@ public class AIStateManager : MonoBehaviour
         lookAroundTimer = lookAroundDuration;
     }
 
+    public void RestartLookAround(float duration)
+    {
+        lookAroundTimer = duration;
+    }
+
     public void EnterChase()
     {
         currentState = AIState.Chase;
@@ -72,4 +77,5 @@ public class AIStateManager : MonoBehaviour
 
     public float GetSearchRadius() => 4f;
     public float GetSearchDuration() => searchDuration;
+    public float GetLookAroundDuration() => lookAroundDuration;
 }

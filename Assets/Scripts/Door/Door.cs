@@ -1,79 +1,126 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(AudioSource))]
 public class Door : MonoBehaviour
 {
-    private Animator _doorAnimator;
+    public static event Action<Door> DoorStateChanged;
 
-    private AudioSource _doorAudioSource;
+    [Header("Door")]
+    [SerializeField] private bool startsOpen;
+    [SerializeField] private bool isLocked;
 
-    [SerializeField] private AudioClip _doorOpenAudioClip;
+    [Header("Animation")]
+    [SerializeField] private string animatorBool = "Door Open";
 
-    [SerializeField] private AudioClip _doorCloseAudioClip;
+    [Header("Collider")]
+    [SerializeField] private Collider blockingCollider;
 
-    [SerializeField] private float _doorVolume = 1f;
+    [Header("Audio")]
+    [SerializeField] private AudioClip openClip;
+    [SerializeField] private AudioClip closeClip;
 
-    [SerializeField] private float _doorOpenAudioDelay = 0f;
+    [SerializeField] private float volume = 1f;
+    [SerializeField] private float openDelay;
+    [SerializeField] private float closeDelay;
 
-    [SerializeField] private float _doorCloseAudioDelay = 0f;
+    private Animator anim;
+    private AudioSource source;
 
-    [SerializeField] private bool _doorStartsOpen;
+    private bool isOpen;
 
-    private enum State
+    public bool IsLocked => isLocked;
+    public bool IsOpen => isOpen;
+
+    private void Awake()
     {
-        Open,
-        Closed,
+        anim = GetComponent<Animator>();
+        source = GetComponent<AudioSource>();
+
+        if (blockingCollider == null)
+            blockingCollider = GetComponentInChildren<Collider>();
     }
 
-    private State _currentState;
-
-    void Start()
+    private void Start()
     {
-        _doorAnimator = GetComponent<Animator>();
+        isOpen = startsOpen && !isLocked;
+        ApplyInstantState();
 
-        _doorAudioSource = GetComponent<AudioSource>();
-
-        _currentState = State.Closed;
+        DoorStateChanged?.Invoke(this);
     }
 
-    void Update()
+    public void SetLocked(bool locked)
     {
-        if (_doorStartsOpen && _currentState != State.Open)
-        {
-            OpenDoor();
-        }
-        else if (!_doorStartsOpen && _currentState != State.Closed)
-        {
+        isLocked = locked;
+
+        if (isLocked && isOpen)
             CloseDoor();
-        }
+
+        DoorStateChanged?.Invoke(this);
     }
 
     public void OpenDoor()
     {
-        _doorAnimator.SetBool("Door Open", true);
+        if (isLocked || isOpen)
+            return;
 
-        StartCoroutine(PlayAudioAfterDelay(_doorOpenAudioClip, _doorOpenAudioDelay));
+        isOpen = true;
 
-        _currentState = State.Open;
+        anim.SetBool(animatorBool, true);
 
-        _doorStartsOpen = true;
+        if (blockingCollider != null)
+            blockingCollider.enabled = false;
+
+        if (openClip != null)
+            StartCoroutine(PlayAudio(openClip, openDelay));
+
+        DoorStateChanged?.Invoke(this);
     }
 
     public void CloseDoor()
     {
-        _doorAnimator.SetBool("Door Open", false);
+        if (!isOpen)
+            return;
 
-        StartCoroutine(PlayAudioAfterDelay(_doorCloseAudioClip, _doorCloseAudioDelay));
+        isOpen = false;
 
-        _currentState = State.Closed;
+        anim.SetBool(animatorBool, false);
 
-        _doorStartsOpen = false;
+        if (blockingCollider != null)
+            blockingCollider.enabled = true;
+
+        if (closeClip != null)
+            StartCoroutine(PlayAudio(closeClip, closeDelay));
+
+        DoorStateChanged?.Invoke(this);
     }
 
-    private IEnumerator PlayAudioAfterDelay(AudioClip clip, float delay)
+    public void ToggleDoor()
     {
-        yield return new WaitForSeconds(delay);
+        if (isLocked)
+            return;
 
-        _doorAudioSource.PlayOneShot(clip, _doorVolume);
+        if (isOpen)
+            CloseDoor();
+        else
+            OpenDoor();
+    }
+
+    private void ApplyInstantState()
+    {
+        anim.SetBool(animatorBool, isOpen);
+
+        if (blockingCollider != null)
+            blockingCollider.enabled = !isOpen;
+    }
+
+    private IEnumerator PlayAudio(AudioClip clip, float delay)
+    {
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        source.PlayOneShot(clip, volume);
     }
 }

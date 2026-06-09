@@ -73,9 +73,23 @@ public class PathfindingSystem : MonoBehaviour
         return currentPath[index];
     }
 
+    public Node GetCurrentPathNode(int lookAhead = 0)
+    {
+        if (currentPath == null || pathIndex >= currentPath.Count || masterGrid == null)
+            return null;
+
+        Vector3 pos = currentPath[Mathf.Min(pathIndex + Mathf.Max(0, lookAhead), currentPath.Count - 1)];
+        return masterGrid.NodeFromWorld(pos);
+    }
+
     public bool IsPathComplete() => currentPath == null || pathIndex >= currentPath.Count;
 
     public void GeneratePath(Vector3 targetPos)
+    {
+        TryGeneratePath(targetPos);
+    }
+
+    public bool TryGeneratePath(Vector3 targetPos)
     {
         if (masterGrid != null)
         {
@@ -89,25 +103,41 @@ public class PathfindingSystem : MonoBehaviour
         {
             currentPath = path;
             pathIndex = 0;
+            return true;
         }
-        else
+
+        currentPath = null;
+        pathIndex = 0;
+        return false;
+    }
+
+    public bool TryGeneratePathToAny(IEnumerable<Vector3> targets)
+    {
+        if (targets == null)
+            return false;
+
+        foreach (Vector3 target in targets)
         {
-            currentPath = null;
-            pathIndex = 0;
+            if (TryGeneratePath(target))
+                return true;
         }
+
+        return false;
     }
 
     public void PickRandomPatrol()
     {
-        if (masterGrid == null) return;
+        if (masterGrid == null)
+            return;
 
         for (int i = 0; i < 12; i++)
         {
             Node n = masterGrid.GetRandomWalkableNode();
-            if (n == null) continue;
+            if (n == null)
+                continue;
 
-            GeneratePath(n.WorldPosition);
-            return;
+            if (TryGeneratePath(n.WorldPosition))
+                return;
         }
     }
 
@@ -179,14 +209,13 @@ public class PathfindingSystem : MonoBehaviour
         Vector3 flattenedPosition = ownerTransform.position;
         flattenedPosition.y = targetNode.y;
 
-        // STRICT node following.
-        // Enemy MUST fully reach node before advancing.
         if ((flattenedPosition - targetNode).sqrMagnitude <= thresholdSqr)
         {
             ownerTransform.position = targetNode;
             pathIndex++;
         }
     }
+
     public void UpdatePathRefreshTimer()
     {
         pathTimer -= Time.deltaTime;
@@ -320,18 +349,21 @@ public class PathfindingSystem : MonoBehaviour
         }
 
         Node targetNode = roomNodes[Random.Range(0, roomNodes.Count)];
-        GeneratePath(targetNode.WorldPosition);
+        TryGeneratePath(targetNode.WorldPosition);
     }
 
     private List<Vector3> AStar(Vector3 targetPos)
     {
-        if (masterGrid == null) return null;
+        if (masterGrid == null)
+            return null;
 
         Node start = masterGrid.NodeFromWorld(ownerTransform.position);
         Node target = masterGrid.NodeFromWorld(targetPos);
-        if (start == null || target == null) return null;
+        if (start == null || target == null)
+            return null;
 
-        foreach (var n in allNodes) n.ResetCosts();
+        foreach (var n in allNodes)
+            n.ResetCosts();
 
         List<Node> openSet = new List<Node> { start };
         HashSet<Node> closedSet = new HashSet<Node>();
@@ -357,7 +389,8 @@ public class PathfindingSystem : MonoBehaviour
 
             foreach (var neighbor in GetNavigationNeighbors(current))
             {
-                if (neighbor == null || !neighbor.IsWalkable || closedSet.Contains(neighbor)) continue;
+                if (neighbor == null || !neighbor.IsWalkable || closedSet.Contains(neighbor))
+                    continue;
 
                 int newCost = current.GCost + GetStepCost(current, neighbor);
                 if (newCost < neighbor.GCost)
@@ -408,6 +441,9 @@ public class PathfindingSystem : MonoBehaviour
 
         int cost = diagonal ? 14 : 10;
         cost += CountBlockedCardinalSides(neighbor) * wallProximityPenalty;
+
+        if (neighbor.Type == NodeType.Door)
+            cost += 0;
 
         if (current.Parent != null)
         {
