@@ -1,6 +1,11 @@
-using UnityEngine;
+using NUnit.Framework;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+
 
 public class Keypad : MonoBehaviour
 {
@@ -9,16 +14,35 @@ public class Keypad : MonoBehaviour
     [SerializeField] private GameObject clear;
 
     [SerializeField] private TextMeshPro textMesh;
-    [SerializeField] private string correctCode = "1234";
+    public string correctCode = "1234";
 
-    private int maxInputLength = 4;
+    [SerializeField] private UnityEvent OpenDoor;
+
+    private int maxInputLength;
     private string currentInput = "";
 
     private bool inUse = true;
+    private bool correctCodeEntered = false;
+
+
+    private void Start()
+    {
+        maxInputLength = correctCode.Length;
+        ShuffelKeys();
+    }
+
+    private void ShuffelKeys()
+    {
+        buttons = buttons.OrderBy(x => UnityEngine.Random.value).ToList();
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            buttons[i].GetComponentInChildren<TextMeshPro>().text = i.ToString();
+        }
+    }
 
     void Update()
     {
-        if (!inUse) return;
+        if (!inUse || correctCodeEntered) return;
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -34,12 +58,14 @@ public class Keypad : MonoBehaviour
                     if (currentInput == correctCode)
                     {
                         Debug.Log("CorrectCode");
+                        correctCodeEntered = true;
                         textMesh.color = Color.green;
                     }
                     else
                     {
                         currentInput = "";
                         Debug.Log("IncorrectCode");
+                        ShuffelKeys();
                         UpdateDisplay();
                     }
                 }
@@ -63,6 +89,11 @@ public class Keypad : MonoBehaviour
                     }
                 }
             }
+
+            if (correctCodeEntered)
+            {
+                OpenDoor?.Invoke();
+            }
         }
     }
 
@@ -72,5 +103,10 @@ public class Keypad : MonoBehaviour
         {
             textMesh.text = currentInput;
         }
+    }
+
+    public void UseKeypad()
+    {
+        inUse = true;
     }
 }
