@@ -27,10 +27,51 @@ public class VisionDetectionSystem : MonoBehaviour
         playerTransform = player;
     }
 
-    /// <summary>
-    /// Casts vision rays and counts how many hit the player.
-    /// Useful for cameras or other watcher objects.
-    /// </summary>
+    public Transform GetPlayerTransform() => playerTransform;
+    public float GetViewRadius() => viewRadius;
+    public float GetViewAngle() => viewAngle;
+
+    public bool CanSeeTarget(Vector3 targetPosition)
+    {
+        Vector3 eyePos = ownerTransform.position + Vector3.up * eyeHeight;
+        Vector3 targetPos = targetPosition + Vector3.up * eyeHeight;
+        Vector3 dirToTarget = targetPos - eyePos;
+        float distance = dirToTarget.magnitude;
+
+        if (distance > viewRadius)
+            return false;
+
+        if (Vector3.Angle(ownerTransform.forward, dirToTarget.normalized) > viewAngle / 2f)
+            return false;
+
+        if (Physics.Linecast(eyePos, targetPos, wallLayer))
+            return false;
+
+        return true;
+    }
+
+    public float CalculateStimulus(Vector3 targetPosition)
+    {
+        Vector3 eyePos = ownerTransform.position + Vector3.up * eyeHeight;
+        Vector3 targetPos = targetPosition + Vector3.up * eyeHeight;
+        Vector3 dirToTarget = targetPos - eyePos;
+        float distance = dirToTarget.magnitude;
+
+        if (distance > viewRadius)
+            return 0f;
+
+        Vector3 dir = dirToTarget.normalized;
+
+        if (Vector3.Angle(ownerTransform.forward, dir) > viewAngle / 2f)
+            return 0f;
+
+        if (Physics.Linecast(eyePos, targetPos, wallLayer))
+            return 0f;
+
+        float distanceFactor = 1f - Mathf.Clamp01(distance / viewRadius);
+        return distanceFactor;
+    }
+
     public int CastVisionRaysAndCountHits(Vector3 lookDirection = default)
     {
         int hits = 0;
@@ -47,16 +88,16 @@ public class VisionDetectionSystem : MonoBehaviour
 
             if (Physics.Raycast(eyePos, dir, out RaycastHit hit, viewRadius))
             {
-                if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
-                {
-                    if (drawVisionRays) Debug.DrawRay(eyePos, dir * hit.distance, Color.red);
+                bool hitWall = ((1 << hit.collider.gameObject.layer) & wallLayer) != 0;
+
+                if (drawVisionRays)
+                    Debug.DrawRay(eyePos, dir * hit.distance, hitWall ? Color.red : Color.green);
+
+                if (hitWall)
                     continue;
-                }
 
-                bool hitPlayer = IsHitPlayer(hit);
-                if (drawVisionRays) Debug.DrawRay(eyePos, dir * hit.distance, hitPlayer ? Color.green : Color.red);
-
-                if (hitPlayer) hits++;
+                if (IsHitPlayer(hit))
+                    hits++;
             }
             else if (drawVisionRays)
             {
@@ -67,32 +108,18 @@ public class VisionDetectionSystem : MonoBehaviour
         return hits;
     }
 
-    /// <summary>
-    /// Direct line-of-sight check against a target position.
-    /// </summary>
-    public bool CanSeeTarget(Vector3 targetPosition)
-    {
-        Vector3 eyePos = ownerTransform.position + Vector3.up * eyeHeight;
-        Vector3 targetPos = targetPosition + Vector3.up * eyeHeight;
-        Vector3 dirToTarget = targetPos - eyePos;
-        float distance = dirToTarget.magnitude;
-
-        if (distance > viewRadius) return false;
-        if (Vector3.Angle(ownerTransform.forward, dirToTarget.normalized) > viewAngle / 2f) return false;
-        if (Physics.Linecast(eyePos, targetPos, wallLayer)) return false;
-
-        return true;
-    }
-
-    public Transform GetPlayerTransform() => playerTransform;
-    public float GetViewRadius() => viewRadius;
-    public float GetViewAngle() => viewAngle;
-
     private bool IsHitPlayer(RaycastHit hit)
     {
-        if (hit.collider == null) return false;
-        if (!string.IsNullOrEmpty(playerTag) && hit.collider.CompareTag(playerTag)) return true;
-        if (playerTransform != null && (hit.transform == playerTransform || hit.transform.IsChildOf(playerTransform))) return true;
+        if (hit.collider == null)
+            return false;
+
+        if (!string.IsNullOrEmpty(playerTag) && hit.collider.CompareTag(playerTag))
+            return true;
+
+        if (playerTransform != null &&
+            (hit.transform == playerTransform || hit.transform.IsChildOf(playerTransform)))
+            return true;
+
         return false;
     }
 
@@ -100,18 +127,5 @@ public class VisionDetectionSystem : MonoBehaviour
     {
         float rad = angleInDegrees * Mathf.Deg2Rad;
         return new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad));
-    }
-
-    public void DrawDebugGizmos(Vector3 pos, Vector3 centerDir)
-    {
-        Gizmos.color = Color.white;
-        Gizmos.DrawWireSphere(pos, viewRadius);
-
-        Vector3 left = Quaternion.AngleAxis(-viewAngle / 2f, Vector3.up) * centerDir;
-        Vector3 right = Quaternion.AngleAxis(viewAngle / 2f, Vector3.up) * centerDir;
-
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawLine(pos, pos + left * viewRadius);
-        Gizmos.DrawLine(pos, pos + right * viewRadius);
     }
 }

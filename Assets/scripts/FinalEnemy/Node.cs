@@ -20,17 +20,14 @@ public class Node
         Vector3Int gridPos,
         Vector3 worldPos,
         bool walkable,
-        NodeType type,
+        NodeType type = NodeType.Floor,
         Door linkedDoor = null)
     {
         GridPosition = gridPos;
         WorldPosition = worldPos;
-
         IsWalkable = walkable;
         Type = type;
-
         LinkedDoor = linkedDoor;
-
         ResetCosts();
     }
 
@@ -47,5 +44,6 @@ public class Node
             return;
 
         IsWalkable = !LinkedDoor.IsLocked;
+        Type = NodeType.Door;
     }
 }

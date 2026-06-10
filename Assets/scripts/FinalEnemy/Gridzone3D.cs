@@ -153,9 +153,6 @@ public class Grid3DMaster : MonoBehaviour
     {
         cachedWalkableNodes.Clear();
 
-        if (cachedAllNodes == null)
-            return;
-
         for (int i = 0; i < cachedAllNodes.Count; i++)
         {
             Node node = cachedAllNodes[i];
