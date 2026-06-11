@@ -19,11 +19,11 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     [SerializeField] private float soundFallbackMultiplier = 18f;
     [SerializeField] private float signalMemoryTime = 5f;
     [SerializeField] private float signalReceiveCooldown = 0.12f;
-    [SerializeField] private float visionScanInterval = 0.12f;
+    [SerializeField] private float visionScanInterval = 0.05f;
 
     [Header("Predictive Chasing")]
     [SerializeField] private float predictionLookAhead = 0.5f;
-    [SerializeField] private float chasePathRefreshRate = 0.24f;
+    [SerializeField] private float chasePathRefreshRate = 0.18f;
 
     [Header("Room Patrol")]
     [SerializeField] private float patrolScoutInterval = 11f;
@@ -34,6 +34,13 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     [SerializeField] private float lookAroundPauseRotateSpeed = 75f;
     [SerializeField] private float searchTimeExtensionPerAttempt = 2f;
     [SerializeField] private int maxSearchAttempts = 3;
+
+    [Header("Better Search")]
+    [SerializeField] private float searchMinRadius = 2.5f;
+    [SerializeField] private float searchMaxRadius = 8f;
+    [SerializeField] private int searchRingSamples = 8;
+    [SerializeField] private float searchHistoryBias = 0.75f;
+    [SerializeField] private float searchSpread = 1.25f;
 
     [Header("Thresholds")]
     [SerializeField, Range(0f, 1f)] private float alertThresholdPercent = 0.30f;
@@ -71,6 +78,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     private int lastKnownRoomId = -1;
 
     private bool killTriggered;
+    private bool waitingAtSearchPoint;
 
     private Transform ownerTransform;
 
@@ -78,6 +86,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     {
         ownerTransform = transform;
         killTriggered = false;
+        waitingAtSearchPoint = false;
         visionScanTimer = 0f;
 
         hearingSystem = GetComponent<HearingDetectionSystem>();
@@ -124,6 +133,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         pathfinding.SetMasterGrid(masterGrid);
 
         lastKnownPosition = transform.position;
+
         if (player != null)
         {
             lastPlayerPosition = player.position;
@@ -165,10 +175,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
                 positionHistoryTimer = positionHistoryUpdateInterval;
             }
-        }
 
-        if (player != null)
-        {
             Vector3 currentPlayerVelocity = (player.position - lastPlayerPosition) / Mathf.Max(dt, 0.0001f);
             lastPlayerVelocity = Vector3.Lerp(lastPlayerVelocity, currentPlayerVelocity, 0.5f);
             lastPlayerPosition = player.position;
@@ -177,8 +184,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
                 visionSystem.Initialize(player);
         }
 
-        UpdateVisionDetection(dt);
-
+        UpdatePassiveSenses(dt);
         UpdateStateBasedOnDetection();
         ExecuteBehavior();
         CheckRoomEntryLookAround();
@@ -196,16 +202,17 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             return;
         }
 
-        if (stateManager.GetCurrentState() == AIStateManager.AIState.Search && stateManager.IsLookingAround())
+        if (stateManager.GetCurrentState() == AIStateManager.AIState.Search &&
+            waitingAtSearchPoint &&
+            stateManager.IsLookingAround())
         {
-            movement.RotateInPlace(60f, Time.fixedDeltaTime);
+            movement.RotateInPlace(lookAroundPauseRotateSpeed, Time.fixedDeltaTime);
             return;
         }
 
         if (player != null && stateManager.GetCurrentState() == AIStateManager.AIState.Chase)
         {
             chasePathTimer -= Time.fixedDeltaTime;
-
             if (chasePathTimer <= 0f)
             {
                 Vector3 predictedPosition = player.position + (lastPlayerVelocity * predictionLookAhead);
@@ -230,14 +237,8 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
         if (pathfinding != null)
             transform.position = pathfinding.ClampToWalkableGrid(transform.position);
-
-        UpdatePassiveHearing(Time.fixedDeltaTime);
     }
 
-    /// <summary>
-    /// Sound input from footsteps, impacts, sprinting, etc.
-    /// volume01 should be 0..1.
-    /// </summary>
     public void OnSoundHeard(Vector3 source, float volume01)
     {
         if (!enableSoundSense) return;
@@ -258,10 +259,6 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             Debug.Log($"[AI] Sound stimulus | Volume: {volume01:F2} | Added: {addedDetection:F1}");
     }
 
-    /// <summary>
-    /// Camera / alarm / scripted sighting input.
-    /// strength should be 0..1.
-    /// </summary>
     public void OnSignalReceived(Vector3 source, float strength)
     {
         if (!enableCameraSignals) return;
@@ -279,25 +276,59 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             Debug.Log($"[AI] Camera signal | Strength: {strength:F2} | Added: {addedDetection:F1}");
     }
 
-    private void UpdateVisionDetection(float deltaTime)
+    private void UpdatePassiveSenses(float deltaTime)
     {
-        if (!enableVisionSense || visionSystem == null || player == null || signalCooldownTimer > 0f)
+        if (player == null || detectionMeter == null)
             return;
 
-        visionScanTimer -= deltaTime;
-        if (visionScanTimer > 0f)
-            return;
+        float totalStimulus = 0f;
 
-        visionScanTimer = visionScanInterval;
+        if (enableVisionSense && visionSystem != null)
+        {
+            visionScanTimer -= deltaTime;
+            if (visionScanTimer <= 0f)
+            {
+                visionScanTimer = visionScanInterval;
 
-        if (!visionSystem.CanSeeTarget(player.position))
-            return;
+                if (visionSystem.CanSeeTarget(player.position))
+                {
+                    float visionStrength = visionSystem.CalculateStimulus(player.position);
+                    totalStimulus += visionStrength * visionDetectionMultiplier * deltaTime;
 
-        signalCooldownTimer = signalReceiveCooldown;
-        RegisterStimulus(player.position, visionDetectionMultiplier * deltaTime, true);
+                    lastKnownPosition = player.position;
+                    memoryTimer = signalMemoryTime;
+                    stateManager.RegisterPlayerPosition(player.position);
 
-        if (verboseLogs)
-            Debug.Log($"[AI] Vision stimulus | Added: {(visionDetectionMultiplier * deltaTime):F1}");
+                    int roomId = pathfinding.GetRoomIdAtPosition(player.position);
+                    if (roomId >= 0)
+                        lastKnownRoomId = roomId;
+                }
+            }
+        }
+
+        if (enableSoundSense && hearingSystem != null)
+        {
+            float movementNoise = Mathf.Clamp01(lastPlayerVelocity.magnitude / 6f);
+            if (movementNoise > 0.01f)
+            {
+                float hearingStimulus = hearingSystem.CalculateStimulus(player.position, movementNoise);
+                if (hearingStimulus > 0f)
+                {
+                    totalStimulus += hearingStimulus * deltaTime;
+
+                    lastKnownPosition = player.position;
+                    memoryTimer = signalMemoryTime;
+                    stateManager.RegisterPlayerPosition(player.position);
+
+                    int roomId = pathfinding.GetRoomIdAtPosition(player.position);
+                    if (roomId >= 0)
+                        lastKnownRoomId = roomId;
+                }
+            }
+        }
+
+        if (totalStimulus > 0f)
+            detectionMeter.AddDetection(totalStimulus);
     }
 
     private void RegisterStimulus(Vector3 source, float addedDetection, bool fromCamera)
@@ -310,6 +341,9 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         lastKnownPosition = source;
         memoryTimer = signalMemoryTime;
         searchAttempts = 0;
+        waitingAtSearchPoint = false;
+
+        stateManager.RegisterPlayerPosition(source);
 
         int roomId = pathfinding.GetRoomIdAtPosition(source);
         if (roomId >= 0)
@@ -328,25 +362,6 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             Debug.Log($"[AI] Heard source at {source}");
     }
 
-    private void UpdatePassiveHearing(float deltaTime)
-    {
-        if (!enableSoundSense || hearingSystem == null || player == null || detectionMeter == null || pathfinding == null)
-            return;
-
-        float addedDetection = hearingSystem.CalculateStimulus(player.position, 1f) * deltaTime;
-        if (addedDetection <= 0f)
-            return;
-
-        detectionMeter.AddDetection(addedDetection);
-
-        lastKnownPosition = player.position;
-        memoryTimer = signalMemoryTime;
-
-        int roomId = pathfinding.GetRoomIdAtPosition(player.position);
-        if (roomId >= 0)
-            lastKnownRoomId = roomId;
-    }
-
     private void UpdateStateBasedOnDetection()
     {
         float detection = detectionMeter.GetDetection();
@@ -359,7 +374,10 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             {
                 stateManager.EnterSearch();
                 searchAttempts = 0;
+                waitingAtSearchPoint = false;
+                stateManager.RestartLookAround(lookAroundPauseDuration);
             }
+
             return;
         }
 
@@ -385,6 +403,13 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
                 stateManager.EnterAlert();
 
             return;
+        }
+
+        if ((currentState == AIStateManager.AIState.Alert ||
+             currentState == AIStateManager.AIState.Stalking) &&
+            memoryTimer <= 0f)
+        {
+            stateManager.EnterSearch();
         }
     }
 
@@ -413,6 +438,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     private void ExecutePatrol()
     {
         patrolScoutTimer -= Time.deltaTime;
+        waitingAtSearchPoint = false;
 
         if (pathfinding.IsPathComplete())
         {
@@ -432,6 +458,8 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
     private void ExecuteAlert()
     {
+        waitingAtSearchPoint = false;
+
         if (pathfinding.IsPathComplete())
             pathfinding.GeneratePath(lastKnownPosition);
 
@@ -448,6 +476,8 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
     private void ExecuteStalking()
     {
+        waitingAtSearchPoint = false;
+
         if (pathfinding.IsPathComplete())
             pathfinding.GeneratePath(lastKnownPosition);
 
@@ -464,6 +494,8 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
     private void ExecuteChase()
     {
+        waitingAtSearchPoint = false;
+
         if (player != null)
             lastKnownPosition = player.position;
         else
@@ -472,40 +504,118 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
 
     private void ExecuteSearch()
     {
-        if (pathfinding.IsPathComplete())
+        if (!pathfinding.IsPathComplete())
         {
-            Vector3 searchTarget;
-            if (playerPositionHistory.Count > 0)
-            {
-                searchTarget = playerPositionHistory[playerPositionHistory.Count - 1];
-            }
-            else
-            {
-                searchTarget = lastKnownPosition + Random.insideUnitSphere * stateManager.GetSearchRadius();
-            }
-
-            searchTarget.y = transform.position.y;
-            pathfinding.GeneratePath(searchTarget);
+            waitingAtSearchPoint = false;
+            return;
         }
 
-        if (stateManager.IsSearchExpired())
+        if (!waitingAtSearchPoint)
+        {
+            waitingAtSearchPoint = true;
+            stateManager.RestartLookAround(lookAroundPauseDuration);
+            return;
+        }
+
+        if (stateManager.IsLookingAround())
+            return;
+
+        waitingAtSearchPoint = false;
+
+        bool foundNewSearchPoint = TryAcquireSearchPath();
+
+        if (!foundNewSearchPoint)
         {
             searchAttempts++;
 
             if (searchAttempts < maxSearchAttempts)
             {
                 stateManager.ExtendSearchTime(searchTimeExtensionPerAttempt);
+                stateManager.RestartLookAround(lookAroundPauseDuration * 0.75f);
             }
             else
             {
-                detectionMeter.Reset();
-                stateManager.EnterPatrol();
-                pathfinding.PickPatrolInCurrentRoom();
-                searchAttempts = 0;
-                patrolScoutTimer = patrolScoutInterval;
-                StartLookAroundPause();
+                FinishSearchAndReturnToPatrol();
             }
         }
+
+        if (stateManager.IsSearchExpired())
+            FinishSearchAndReturnToPatrol();
+    }
+
+    private bool TryAcquireSearchPath()
+    {
+        List<Vector3> candidates = BuildSearchCandidates();
+        if (candidates.Count == 0)
+            return false;
+
+        if (pathfinding.TryGeneratePathToAny(candidates))
+            return true;
+
+        Vector3 fallback = lastKnownPosition + Random.insideUnitSphere * Mathf.Lerp(searchMinRadius, searchMaxRadius, 0.5f);
+        fallback.y = transform.position.y;
+
+        return pathfinding.TryGeneratePath(fallback);
+    }
+
+    private List<Vector3> BuildSearchCandidates()
+    {
+        List<Vector3> candidates = new List<Vector3>();
+        HashSet<Vector3Int> seenNodes = new HashSet<Vector3Int>();
+
+        void AddCandidate(Vector3 worldPos)
+        {
+            if (masterGrid == null)
+                return;
+
+            Node node = masterGrid.NodeFromWorld(worldPos);
+            if (node == null)
+                return;
+
+            if (seenNodes.Add(node.GridPosition))
+                candidates.Add(node.WorldPosition);
+        }
+
+        AddCandidate(lastKnownPosition);
+
+        for (int i = 0; i < playerPositionHistory.Count; i++)
+            AddCandidate(playerPositionHistory[i]);
+
+        Vector3 bias = lastPlayerVelocity.sqrMagnitude > 0.1f ? lastPlayerVelocity.normalized : transform.forward;
+        bias.y = 0f;
+
+        if (bias.sqrMagnitude < 0.0001f)
+            bias = transform.forward;
+
+        float t = Mathf.Clamp01(searchAttempts / Mathf.Max(1f, (float)maxSearchAttempts));
+        float baseRadius = Mathf.Lerp(searchMinRadius, searchMaxRadius, t);
+
+        for (int i = 0; i < searchRingSamples; i++)
+        {
+            float angle = (360f / searchRingSamples) * i;
+            float wobble = Random.Range(-12f, 12f);
+            float dist = baseRadius + Random.Range(-searchSpread, searchSpread);
+
+            Vector3 offset = Quaternion.Euler(0f, angle + wobble, 0f) * bias * dist;
+            AddCandidate(lastKnownPosition + offset);
+
+            Vector3 randomOffset = Random.insideUnitSphere * (baseRadius * searchHistoryBias);
+            randomOffset.y = 0f;
+            AddCandidate(lastKnownPosition + randomOffset);
+        }
+
+        return candidates;
+    }
+
+    private void FinishSearchAndReturnToPatrol()
+    {
+        detectionMeter.ResetDetection();
+        stateManager.EnterPatrol();
+        pathfinding.PickPatrolInCurrentRoom();
+        searchAttempts = 0;
+        patrolScoutTimer = patrolScoutInterval;
+        waitingAtSearchPoint = false;
+        StartLookAroundPause();
     }
 
     private void CheckRoomEntryLookAround()
@@ -526,33 +636,6 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
     private void StartLookAroundPause()
     {
         lookAroundPauseTimer = Mathf.Min(10f, lookAroundPauseDuration);
-    }
-
-    private Vector3 GetLookDirection()
-    {
-        if (pathfinding == null)
-            return transform.forward;
-
-        Vector3? nextWaypoint = pathfinding.GetNextWaypoint();
-        Vector3 target = nextWaypoint ?? (transform.position + transform.forward);
-        Vector3 dirToNext = target - transform.position;
-        dirToNext.y = 0f;
-
-        return dirToNext.sqrMagnitude > 0.0001f ? dirToNext.normalized : transform.forward;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (!Application.isPlaying)
-            return;
-
-        Vector3 pos = transform.position;
-
-        if (hearingSystem != null && enableSoundSense)
-            hearingSystem.DrawDebugGizmos(pos);
-
-        if (pathfinding != null)
-            pathfinding.DrawDebugGizmos();
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -605,6 +688,15 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
         return false;
     }
 
+    private void OnDrawGizmosSelected()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (pathfinding != null)
+            pathfinding.DrawDebugGizmos();
+    }
+
     private void OnGUI()
     {
         if (!showOnScreenDebug || stateManager == null || detectionMeter == null || pathfinding == null)
@@ -616,7 +708,7 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             normal = { textColor = Color.white }
         };
 
-        Rect rect = new Rect(10, 10, 450, 280);
+        Rect rect = new Rect(10, 10, 520, 320);
         string s =
             $"AI State: {stateManager.GetCurrentState()}\n" +
             $"Detection: {detectionMeter.GetDetection():F1}/{detectionMeter.GetMaxDetection()}\n" +
@@ -626,7 +718,8 @@ public class HorrorEnemyAI : MonoBehaviour, ISignalReceiver
             $"MemoryTimer: {memoryTimer:F1}s\n" +
             $"LookAroundPause: {lookAroundPauseTimer:F1}s\n" +
             $"Position History: {playerPositionHistory.Count}\n" +
-            $"Search Attempts: {searchAttempts}";
+            $"Search Attempts: {searchAttempts}\n" +
+            $"WaitingAtSearchPoint: {waitingAtSearchPoint}";
 
         GUI.Label(rect, s, style);
     }
