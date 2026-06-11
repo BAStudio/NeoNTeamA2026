@@ -16,12 +16,14 @@ public class MusicManager : MonoBehaviour
     [SerializeField] private float transitionSpeed = 2f;
     [SerializeField] private float maxVolume = 1f;
 
-    private bool inDanger;
+    [SerializeField] private bool inDanger;
 
     private void Awake()
     {
         if (Instance == null)
+        {
             Instance = this;
+        }
         else
         {
             Destroy(gameObject);
@@ -31,11 +33,10 @@ public class MusicManager : MonoBehaviour
 
     private void Start()
     {
-        PlayRandomNormal();
-        PlayRandomDanger();
-
         normalSource.volume = maxVolume;
         dangerSource.volume = 0f;
+
+        PlayRandomNormal();
     }
 
     private void Update()
@@ -53,16 +54,35 @@ public class MusicManager : MonoBehaviour
             targetDanger,
             transitionSpeed * Time.deltaTime);
 
-        if (!normalSource.isPlaying)
+        // Keep music looping with random tracks
+        if (!inDanger && !normalSource.isPlaying)
+        {
             PlayRandomNormal();
+        }
 
-        if (!dangerSource.isPlaying)
+        if (inDanger && !dangerSource.isPlaying)
+        {
             PlayRandomDanger();
+        }
     }
 
     public void SetDangerState(bool state)
     {
+        if (inDanger == state)
+            return;
+
         inDanger = state;
+
+        if (inDanger)
+        {
+            normalSource.Stop();
+            PlayRandomDanger();
+        }
+        else
+        {
+            dangerSource.Stop();
+            PlayRandomNormal();
+        }
     }
 
     private void PlayRandomNormal()

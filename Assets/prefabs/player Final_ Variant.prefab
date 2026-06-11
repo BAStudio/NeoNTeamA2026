@@ -17,6 +17,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8734834085294892912}
     - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: hangOffsetBack
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: terminalVelocity
       value: 20.1
       objectReference: {fileID: 0}
@@ -35,6 +39,14 @@ PrefabInstance:
     - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: obstacleLayers.m_Bits
       value: 1664
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: topSurfaceCheckDistance
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1974986608865765638, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
+      propertyPath: groundCheckRadiusMultiplier
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2068605134738799629, guid: 97e72fd18931be743bb654dfba4cfcd1, type: 3}
       propertyPath: m_Name
@@ -167,11 +179,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b47de41c3426c740a19c3a9d36153be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStamina
-  staminaBar: {fileID: 0}
+  mainBar: {fileID: 0}
+  delayBar: {fileID: 0}
+  staminaUI: {fileID: 0}
   maxStamina: 5
   stamina: 0
   staminaRegenDelay: 2
   staminaRegenPerSecond: 1
+  delayBarSpeed: 3
+  fadeSpeed: 3
 --- !u!114 &176302116801471871
 MonoBehaviour:
   m_ObjectHideFlags: 0

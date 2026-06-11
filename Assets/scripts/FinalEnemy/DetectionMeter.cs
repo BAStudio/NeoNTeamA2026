@@ -46,6 +46,7 @@ public class DetectionMeter : MonoBehaviour
     public void ResetDetection()
     {
         currentDetection = 0f;
+
         UpdateMusicState();
     }
 
