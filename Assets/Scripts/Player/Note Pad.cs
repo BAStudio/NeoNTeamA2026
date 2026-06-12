@@ -19,7 +19,13 @@ public class NotePad : MonoBehaviour
 
     private float _notePadTargetHeight;
 
-    private string _notePadText = "";
+    private string _notePadText =
+    "WASD = Move\n" +
+    "Space = Jump\n" +
+    "Right Mouse = Interact\n" +
+    "Right Shift = Sprint\n" +
+    "Right Control = Crouch\n" +
+        "Objective : Escape\n";
 
     public static event System.Action StopMovement;
     public static event System.Action ContinueMovement;
@@ -30,6 +36,7 @@ public class NotePad : MonoBehaviour
     {
         _notePadTargetHeight = _notePadMinHeight;
         _notePad.SetActive(false);
+
     }
 
     void Update()

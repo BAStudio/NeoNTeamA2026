@@ -10,8 +10,12 @@ public class HeadBobbbing : MonoBehaviour
     [SerializeField] private float crouchBobSpeed = 3f;
 
     [SerializeField] private float walkBobAmount = 0.04f;
-    [SerializeField] private float sprintBobAmount = 0.07f;
+    [SerializeField] private float sprintBobAmount = 0.08f;
     [SerializeField] private float crouchBobAmount = 0.02f;
+
+    [Header("Vertical Boost")]
+    [SerializeField] private float sprintVerticalBoost = 1.45f;
+    [SerializeField] private float walkVerticalBoost = 1.05f;
 
     [Header("Idle Breathing")]
     [SerializeField] private float idleSpeed = 1f;
@@ -79,27 +83,31 @@ public class HeadBobbbing : MonoBehaviour
 
         float bobSpeed;
         float bobAmount;
+        float verticalBoost;
 
         if (isCrouching)
         {
             bobSpeed = crouchBobSpeed;
             bobAmount = crouchBobAmount;
+            verticalBoost = 0.9f;
         }
         else if (isSprinting)
         {
             bobSpeed = sprintBobSpeed;
             bobAmount = sprintBobAmount;
+            verticalBoost = sprintVerticalBoost;
         }
         else
         {
             bobSpeed = walkBobSpeed;
             bobAmount = walkBobAmount;
+            verticalBoost = walkVerticalBoost;
         }
 
         bobTimer += Time.deltaTime * bobSpeed;
 
-        float bobY = Mathf.Sin(bobTimer) * bobAmount;
-        float bobX = Mathf.Cos(bobTimer * 0.5f) * bobAmount * 0.5f;
+        float bobY = Mathf.Sin(bobTimer * 2f) * bobAmount * verticalBoost;
+        float bobX = Mathf.Cos(bobTimer) * bobAmount * 0.5f;
 
         Vector3 targetPos = startPos + new Vector3(bobX, Mathf.Abs(bobY), 0f);
 
