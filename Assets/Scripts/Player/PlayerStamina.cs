@@ -5,8 +5,8 @@ public class PlayerStamina : MonoBehaviour
     public static PlayerStamina Instance { get; private set; }
 
     [Header("Bars")]
-    [SerializeField] private RectTransform staminaBar;      
-    [SerializeField] private RectTransform regenDelayBar;   
+    [SerializeField] private RectTransform staminaBar;
+    [SerializeField] private RectTransform regenDelayBar;
     [SerializeField] private CanvasGroup staminaUI;
 
     [Header("Stamina")]
@@ -16,6 +16,9 @@ public class PlayerStamina : MonoBehaviour
     [Header("Regen")]
     [SerializeField] private float staminaRegenDelay = 2f;
     [SerializeField] private float staminaRegenPerSecond = 1f;
+
+    [Header("Exhaustion")]
+    [SerializeField] private float exhaustedRegenDelay = 4f;
 
     [Header("Fade")]
     [SerializeField] private float fadeSpeed = 5f;
@@ -59,11 +62,25 @@ public class PlayerStamina : MonoBehaviour
     private void UpdateBars()
     {
         float staminaPercent = stamina / maxStamina;
-        staminaBar.localScale = new Vector3(staminaPercent, 1f, 1f);
 
-        float delayPercent = staminaRegenTimer / staminaRegenDelay;
+        staminaBar.localScale = new Vector3(
+            staminaPercent,
+            1f,
+            1f
+        );
 
-        regenDelayBar.localScale = new Vector3(delayPercent, 1f, 1f);
+        float delayPercent = 1f - (
+            staminaRegenTimer /
+            Mathf.Max(0.0001f, exhaustedRegenDelay)
+        );
+
+        delayPercent = Mathf.Clamp01(delayPercent);
+
+        regenDelayBar.localScale = new Vector3(
+            delayPercent,
+            1f,
+            1f
+        );
     }
 
     private void HandleFade()
@@ -84,12 +101,26 @@ public class PlayerStamina : MonoBehaviour
         stamina -= amount;
         stamina = Mathf.Clamp(stamina, 0f, maxStamina);
 
-        staminaRegenTimer = staminaRegenDelay;
+        bool exhausted = stamina <= 0f;
+
+        staminaRegenTimer = exhausted
+            ? exhaustedRegenDelay
+            : staminaRegenDelay;
     }
 
     public void RegenerateStamina(float amount)
     {
         stamina += amount;
         stamina = Mathf.Clamp(stamina, 0f, maxStamina);
+    }
+
+    public bool IsExhausted()
+    {
+        return stamina <= 0f;
+    }
+
+    public float GetStaminaPercent()
+    {
+        return stamina / maxStamina;
     }
 }
