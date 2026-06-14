@@ -34,10 +34,7 @@ public class MovementController : MonoBehaviour
         ownerTransform = transform;
     }
 
-    public bool MoveTowardsWaypoint(
-        Vector3 target,
-        AIStateManager.AIState currentState,
-        float deltaTime)
+    public bool MoveTowardsWaypoint(Vector3 target, AIStateManager.AIState currentState, float deltaTime)
     {
         Vector3 currentPos = ownerTransform.position;
 
@@ -47,10 +44,8 @@ public class MovementController : MonoBehaviour
             target.z);
 
         Vector3 toTarget = targetPos - currentPos;
-
         float distance = toTarget.magnitude;
 
-        // Fully reached node
         if (distance <= arriveThreshold)
         {
             ownerTransform.position = targetPos;
@@ -60,7 +55,6 @@ public class MovementController : MonoBehaviour
         Vector3 moveDir = toTarget.normalized;
 
         float speed = GetSpeedForState(currentState);
-
         float slowdownDistance = GetSlowdownDistance(currentState);
         float minMultiplier = GetMinSpeedMultiplier(currentState);
 
@@ -70,48 +64,34 @@ public class MovementController : MonoBehaviour
 
         t = t * t * (3f - 2f * t);
 
-        float adjustedSpeed = Mathf.Lerp(
-            speed * minMultiplier,
-            speed,
-            t);
-
+        float adjustedSpeed = Mathf.Lerp(speed * minMultiplier, speed, t);
         float moveStep = adjustedSpeed * deltaTime;
 
-        // NEVER overshoot node
         if (moveStep >= distance)
         {
             ownerTransform.position = targetPos;
             return true;
         }
 
-        ownerTransform.position =
-            currentPos + moveDir * moveStep;
+        ownerTransform.position = currentPos + moveDir * moveStep;
 
-        // Rotate toward movement direction
         if (moveDir.sqrMagnitude > 0.0001f)
         {
             float rotSpeed = GetRotationSpeed(currentState);
+            Quaternion targetRotation = Quaternion.LookRotation(-moveDir, Vector3.up);
 
-            Quaternion targetRotation =
-                Quaternion.LookRotation(-moveDir, Vector3.up);
-
-            ownerTransform.rotation =
-                Quaternion.RotateTowards(
-                    ownerTransform.rotation,
-                    targetRotation,
-                    rotSpeed * deltaTime);
+            ownerTransform.rotation = Quaternion.RotateTowards(
+                ownerTransform.rotation,
+                targetRotation,
+                rotSpeed * deltaTime);
         }
 
         return false;
     }
 
-    public void RotateInPlace(
-        float rotationDegreesPerSecond,
-        float deltaTime)
+    public void RotateInPlace(float rotationDegreesPerSecond, float deltaTime)
     {
-        ownerTransform.Rotate(
-            Vector3.up,
-            rotationDegreesPerSecond * deltaTime);
+        ownerTransform.Rotate(Vector3.up, rotationDegreesPerSecond * deltaTime);
     }
 
     private float GetSpeedForState(AIStateManager.AIState state)
@@ -162,9 +142,4 @@ public class MovementController : MonoBehaviour
             _ => patrolRotationSpeed
         };
     }
-
-    public float GetPatrolSpeed() => patrolSpeed;
-    public float GetAlertSpeed() => alertSpeed;
-    public float GetStalkSpeed() => stalkSpeed;
-    public float GetChaseSpeed() => chaseSpeed;
 }

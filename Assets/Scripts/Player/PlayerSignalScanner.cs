@@ -20,12 +20,13 @@ public class PlayerSignalScanner : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField, Range(0.1f, 1f)] private float wallAttenuationMultiplier = 0.7f;
     [SerializeField] private bool drawDebugRays = true;
-
+    
     [Header("Debug")]
     [SerializeField] private bool drawGizmos = true;
 
     private Vector3 lastFramePosition;
     private Vector3 smoothedVelocity;
+    private PlayerMovement movement;
 
     private bool isEmitting;
     private float currentRadius;
@@ -35,17 +36,22 @@ public class PlayerSignalScanner : MonoBehaviour
 
     private void Start()
     {
+        movement = GetComponent<PlayerMovement>();
         lastFramePosition = transform.position;
     }
 
     private void Update()
     {
+
+        if (!movement.IsCrouching) 
+        { 
         UpdateVelocity();
-        HandleWave();
+            HandleWave();
+        }
     }
 
-    #region Velocity
-    private void UpdateVelocity()
+        #region Velocity
+        private void UpdateVelocity()
     {
         Vector3 rawVelocity = (transform.position - lastFramePosition) / Mathf.Max(Time.deltaTime, 0.0001f);
         smoothedVelocity = Vector3.Lerp(smoothedVelocity, rawVelocity, velocitySmoothing);

@@ -21,9 +21,12 @@ GameObject:
   - component: {fileID: 6350463052260270597}
   - component: {fileID: 5057008245991307861}
   - component: {fileID: 3709238362852341635}
-  m_Layer: 11
+  - component: {fileID: 8936988982095094124}
+  - component: {fileID: 8429298265146786666}
+  - component: {fileID: 4730932714229601710}
+  m_Layer: 9
   m_Name: Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -165,25 +168,37 @@ MonoBehaviour:
   masterGrid: {fileID: 0}
   player: {fileID: 0}
   playerTag: Player
-  enableVision: 1
-  enableHearing: 1
-  enableSignalReceiver: 1
+  enableSoundSense: 1
+  enableCameraSignals: 1
+  enableVisionSense: 0
   autoAddMissingSensorComponents: 1
-  signalDetectionMultiplier: 40
+  cameraDetectionMultiplier: 45
+  visionDetectionMultiplier: 30
+  soundFallbackMultiplier: 20
   signalMemoryTime: 2
   signalReceiveCooldown: 0.08
-  hearingDetectionMultiplier: 35
+  visionScanInterval: 0.12
   predictionLookAhead: 0.5
   chasePathRefreshRate: 0.1
   patrolScoutInterval: 9
   patrolScoutOtherRoomChance: 0.35
   lookAroundPauseDuration: 6
   lookAroundPauseRotateSpeed: 75
+  searchTimeExtensionPerAttempt: 2
+  maxSearchAttempts: 3
+  searchMinRadius: 2.5
+  searchMaxRadius: 8
+  searchRingSamples: 8
+  searchHistoryBias: 0.75
+  searchSpread: 1.25
+  alertThresholdPercent: 0.25
+  stalkingThresholdPercent: 0.5
+  chaseThresholdPercent: 0.7
+  chaseDropThresholdPercent: 0.55
   verboseLogs: 1
   showOnScreenDebug: 1
   maxPositionHistoryCount: 10
   positionHistoryUpdateInterval: 0.2
-  searchTimeExtensionPerAttempt: 2
 --- !u!114 &8164634526976707678
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,9 +225,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AIStateManager
   alertDuration: 2
-  stalkerDuration: 3
+  stalkingDuration: 6
   searchDuration: 6
   lookAroundDuration: 10
+  playerMemoryDuration: 8
+  searchRadius: 4
 --- !u!114 &5670052995042755164
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -225,10 +242,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aead24e409655b345b05a9a35fe968ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DetectionMeter
-  detectionBuildSpeed: 60
-  detectionDecaySpeed: 10
-  stalkingDecaySpeed: 2
   maxDetection: 100
+  patrolDecay: 6
+  alertDecay: 3
+  stalkingDecay: 1.25
+  dangerThreshold: 45
 --- !u!114 &8288897497771149516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -242,7 +260,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HearingDetectionSystem
   hearingRadius: 3
-  hearingDetectionBoost: 10
+  minimumSoundThreshold: 0.05
+  hearingBoost: 30
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  wallMultiplier: 0.65
 --- !u!114 &6350463052260270597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,8 +282,18 @@ MonoBehaviour:
   alertSpeed: 2.5
   stalkSpeed: 1
   chaseSpeed: 5
-  rotationSpeed: 6
-  movementSmoothTime: 0.4
+  patrolRotationSpeed: 180
+  stalkRotationSpeed: 140
+  chaseRotationSpeed: 360
+  patrolSlowdownDistance: 0.45
+  alertSlowdownDistance: 0.45
+  stalkSlowdownDistance: 0.25
+  chaseSlowdownDistance: 0.6
+  patrolMinMultiplier: 0.55
+  alertMinMultiplier: 0.6
+  stalkMinMultiplier: 0.85
+  chaseMinMultiplier: 0.7
+  arriveThreshold: 0.05
 --- !u!114 &5057008245991307861
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,5 +337,223 @@ MonoBehaviour:
   drawVisionRays: 1
   wallLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
   playerTag: Player
+--- !u!82 &8936988982095094124
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7147160411616086583}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 50.1
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0.002
+      value: 1
+      inSlope: -500.20065
+      outSlope: -500.20065
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.004
+      value: 0.5
+      inSlope: -125.05016
+      outSlope: -125.05016
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.008
+      value: 0.25
+      inSlope: -31.26254
+      outSlope: -31.26254
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.016
+      value: 0.125
+      inSlope: -7.815635
+      outSlope: -7.815635
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.032
+      value: 0.0625
+      inSlope: -1.9539088
+      outSlope: -1.9539088
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.128
+      value: 0.015625
+      inSlope: -0.1221193
+      outSlope: -0.1221193
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.13201606
+      value: 0.39508057
+      inSlope: -0.4884772
+      outSlope: -0.4884772
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.256
+      value: 0.0078125
+      inSlope: -0.030529825
+      outSlope: -0.030529825
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.512
+      value: 0.00390625
+      inSlope: -0.0076324563
+      outSlope: -0.0076324563
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.002
+      inSlope: -0.002000801
+      outSlope: -0.002000801
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.027777778
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &8429298265146786666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7147160411616086583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 537af418d5f52be4887a3713ff32acd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFootstepAudio
+  footstepClip: {fileID: 8300000, guid: 6d776848db7385c4e83cd7f4f832e413, type: 3}
+  minMoveSpeed: 1
+  horizontalOnly: 1
+  maxStrideDistance: 2
+  minStrideDistance: 2
+  firstStepEarlyFactor: 0.45
+  strideJitter: 0.08
+  walkSpeed: 1
+  runSpeed: 1
+  speedSmoothing: 12
+  minPitch: 0.8
+  maxPitch: 0.8
+  pitchJitter: 0.04
+  alternatingPitchBias: 0.03
+  minVolume: 50
+  maxVolume: 50
+  volumeJitter: 0.06
+  alternatingVolumeBias: 0.03
+  maxConcurrentSources: 1
+--- !u!114 &4730932714229601710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7147160411616086583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dd2f4a6d0bb8524f8fc93184ca3add5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDoorDetector
+  detectionDistance: 1.4
+  detectionRadius: 2
+  eyeHeight: 1
+  doorTag: door
+  closeDelay: 0.08
+  drawDebug: 0

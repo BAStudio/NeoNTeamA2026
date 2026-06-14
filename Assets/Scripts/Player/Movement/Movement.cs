@@ -33,8 +33,8 @@ public class Movement_ : MonoBehaviour
         playerStamina = PlayerStamina.Instance;
         rb = GetComponent<Rigidbody>();
 
-        NotePad_.StopMovement += StopMovement;
-        NotePad_.ContinueMovement += ContinueMovement;
+        NotePad.StopMovement += StopMovement;
+        NotePad.ContinueMovement += ContinueMovement;
 
         rb.freezeRotation = true;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;

@@ -2,41 +2,86 @@ using UnityEngine;
 
 public class DetectionMeter : MonoBehaviour
 {
-    [Header("Detection Meter")]
-    [SerializeField] private float detectionDecaySpeed = 5f;
-    [SerializeField] private float stalkingDecaySpeed = 2f;
+    [Header("Detection")]
     [SerializeField] private float maxDetection = 100f;
+
+    [SerializeField] private float patrolDecay = 6f;
+    [SerializeField] private float alertDecay = 3f;
+    [SerializeField] private float stalkingDecay = 1.25f;
+
+    [SerializeField] private float dangerThreshold = 45f;
 
     private float currentDetection;
 
-    private void OnEnable()
+    public void Tick(AIStateManager.AIState state, float dt)
     {
-        currentDetection = 0f;
-    }
+        float decay = patrolDecay;
 
-    public void Tick(AIStateManager.AIState currentState, float deltaTime)
-    {
-        float decayRate = currentState == AIStateManager.AIState.Stalking
-            ? stalkingDecaySpeed
-            : detectionDecaySpeed;
+        switch (state)
+        {
+            case AIStateManager.AIState.Alert:
+                decay = alertDecay;
+                break;
 
-        currentDetection = Mathf.Clamp(currentDetection - decayRate * deltaTime, 0f, maxDetection);
+            case AIStateManager.AIState.Stalking:
+            case AIStateManager.AIState.Chase:
+                decay = stalkingDecay;
+                break;
+        }
+
+        currentDetection -= decay * dt;
+        currentDetection = Mathf.Clamp(currentDetection, 0f, maxDetection);
+
+        UpdateMusicState();
     }
 
     public void AddDetection(float amount)
     {
-        currentDetection = Mathf.Clamp(currentDetection + amount, 0f, maxDetection);
+        currentDetection += amount;
+        currentDetection = Mathf.Clamp(currentDetection, 0f, maxDetection);
+
+        UpdateMusicState();
     }
 
-    public void Reset()
+    public void ResetDetection()
     {
         currentDetection = 0f;
+
+        UpdateMusicState();
     }
 
-    public float GetDetection() => currentDetection;
-    public float GetMaxDetection() => maxDetection;
+    private void UpdateMusicState()
+    {
+        if (MusicManager.Instance == null)
+            return;
 
-    public bool IsStalking() => currentDetection >= maxDetection * 0.5f;
-    public bool IsFullyDetected() => currentDetection >= maxDetection * 0.7f;
-    public bool IsAlerted() => currentDetection >= maxDetection * 0.3f;
+        bool danger = currentDetection >= dangerThreshold;
+
+        MusicManager.Instance.SetDangerState(danger);
+    }
+
+    public float GetDetection()
+    {
+        return currentDetection;
+    }
+
+    public float GetMaxDetection()
+    {
+        return maxDetection;
+    }
+
+    public bool IsAlerted()
+    {
+        return currentDetection >= maxDetection * 0.3f;
+    }
+
+    public bool IsStalking()
+    {
+        return currentDetection >= maxDetection * 0.5f;
+    }
+
+    public bool IsFullyDetected()
+    {
+        return currentDetection >= maxDetection * 0.7f;
+    }
 }
