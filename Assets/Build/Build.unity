@@ -1496,6 +1496,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -5495902117074765545, guid: 9583fbb73add2aa4d9fb7083c3af3c2f, type: 3}
+--- !u!4 &330389787 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7888100557838342460, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+  m_PrefabInstance: {fileID: 1551969197}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &331151626 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6374851534073479281, guid: 9583fbb73add2aa4d9fb7083c3af3c2f, type: 3}
@@ -5930,7 +5935,23 @@ PrefabInstance:
       value: 0.3388195
       objectReference: {fileID: 0}
     - target: {fileID: 1458927213684449310, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1458927213684449310, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
       propertyPath: m_Center.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1458927213684449310, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1458927213684449310, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: m_ProvidesContacts
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2016448256760901311, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2326807911172421676, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
@@ -5950,12 +5971,20 @@ PrefabInstance:
       value: player Final_ Variant
       objectReference: {fileID: 0}
     - target: {fileID: 3775491356312352652, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: orientation
+      value: 
+      objectReference: {fileID: 330389787}
+    - target: {fileID: 3775491356312352652, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
       propertyPath: playerVisual
       value: 
-      objectReference: {fileID: 2099180099}
+      objectReference: {fileID: 330389787}
     - target: {fileID: 3775491356312352652, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
       propertyPath: capsuleRadius
       value: 0.3388195
+      objectReference: {fileID: 0}
+    - target: {fileID: 3775491356312352652, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
+      propertyPath: climbLayer.m_Bits
+      value: 1152
       objectReference: {fileID: 0}
     - target: {fileID: 3861136877793925684, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
       propertyPath: idleAmount
@@ -7458,11 +7487,6 @@ PrefabInstance:
       addedObject: {fileID: 531735621}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a6d53afeaca64db4883ae79b8ebbb6a1, type: 3}
---- !u!4 &2099180099 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5303087266549865659, guid: d4358c7c2525f0349a854852b9cb51cf, type: 3}
-  m_PrefabInstance: {fileID: 1551969197}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2102505479
 PrefabInstance:
   m_ObjectHideFlags: 0
