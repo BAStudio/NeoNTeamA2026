@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 9091389310966926659}
   m_Layer: 0
   m_Name: CamSpawnPoint
-  m_TagString: Untagged
+  m_TagString: cam spawn point
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -45,3 +45,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CamSpawnPoint
   weight: 1
+  occupied: 0
