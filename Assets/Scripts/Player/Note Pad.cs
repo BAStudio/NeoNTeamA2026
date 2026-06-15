@@ -25,7 +25,9 @@ public class NotePad : MonoBehaviour
     "Right Mouse = Interact\n" +
     "Right Shift = Sprint\n" +
     "Right Control = Crouch\n" +
-        "Objective : Escape\n";
+        "Objective : Find the code\n" +
+        "Green = good\n" +
+        "He cant see you \n";
 
     public static event System.Action StopMovement;
     public static event System.Action ContinueMovement;
