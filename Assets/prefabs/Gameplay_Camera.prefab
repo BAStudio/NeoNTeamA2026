@@ -45,7 +45,7 @@ Light:
   m_Type: 0
   m_Color: {r: 1, g: 0, b: 0, a: 1}
   m_Intensity: 73.8
-  m_Range: 2.8
+  m_Range: 4.64
   m_SpotAngle: 147.9225
   m_InnerSpotAngle: 20.783743
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -453,7 +453,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BadCamera
   rotationSpeed: 60
-  rayDistance: 1.5
+  rayDistance: 1.2
   wallLayer:
     serializedVersion: 2
     m_Bits: 1024

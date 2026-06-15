@@ -50,7 +50,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _ColorMask: 15
-    - _Diother_Opacity: 0.15
+    - _Diother_Opacity: 0.4
     - _QuantizationLevel: 30
     - _SaturationLayers: 0
     - _Stencil: 0

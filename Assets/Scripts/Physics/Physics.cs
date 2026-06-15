@@ -13,7 +13,6 @@ public class BasePhysics : MonoBehaviour
     #region Collision Shape
 
     [Header("Collision Shape (used for casts & overlap checks)")]
-
     [Tooltip("Height of the capsule used for casts and overlap checks.")]
     [SerializeField] protected float capsuleHeight = 2.0f;
 
@@ -31,7 +30,6 @@ public class BasePhysics : MonoBehaviour
     #region Gravity & Grounding
 
     [Header("Gravity & Grounding")]
-
     [Tooltip("Gravity multiplier.")]
     [SerializeField] protected float gravityScale = 1f;
 
@@ -62,7 +60,6 @@ public class BasePhysics : MonoBehaviour
     #region General Physics
 
     [Header("General Physics")]
-
     [Tooltip("Mass.")]
     [SerializeField] protected float mass = 1f;
 
@@ -71,6 +68,16 @@ public class BasePhysics : MonoBehaviour
 
     [Tooltip("Skin width.")]
     [SerializeField] protected float skinWidth = 0.05f;
+
+    #endregion
+
+    #region Debug
+
+    [Header("Debug")]
+    [SerializeField] protected bool drawDebugRays = true;
+    [SerializeField] protected Color groundedDebugColor = Color.green;
+    [SerializeField] protected Color airborneDebugColor = Color.red;
+    [SerializeField] protected float debugRayDuration = 0.08f;
 
     #endregion
 
@@ -87,9 +94,23 @@ public class BasePhysics : MonoBehaviour
     protected virtual float GetGroundCheckDistance()
     {
         return groundCheckDistance *
-               (IsCrouchingForGrounding
-                    ? crouchGroundCheckMultiplier
-                    : 1f);
+               (IsCrouchingForGrounding ? crouchGroundCheckMultiplier : 1f);
+    }
+
+    protected Vector3 GetWorldCenter()
+    {
+        return transform.TransformPoint(capsuleCenter);
+    }
+
+    protected void GetCapsulePoints(out Vector3 bottom, out Vector3 top)
+    {
+        Vector3 worldCenter = GetWorldCenter();
+
+        bottom = worldCenter +
+                 Vector3.down * (capsuleHeight * 0.5f - capsuleRadius);
+
+        top = worldCenter +
+              Vector3.up * (capsuleHeight * 0.5f - capsuleRadius);
     }
 
     protected virtual void Awake()
@@ -103,10 +124,7 @@ public class BasePhysics : MonoBehaviour
         if (capsuleHeight < capsuleRadius * 2f)
         {
             capsuleHeight = capsuleRadius * 2.01f;
-
-            Debug.LogWarning(
-                $"{name}: capsuleHeight was too small; adjusted to {capsuleHeight:F2}"
-            );
+            Debug.LogWarning($"{name}: capsuleHeight was too small; adjusted to {capsuleHeight:F2}");
         }
 
         if (skinWidth <= 0f)
@@ -115,28 +133,29 @@ public class BasePhysics : MonoBehaviour
 
     protected virtual void Update()
     {
-        Vector3 worldCenter = transform.TransformPoint(capsuleCenter);
+        UpdateGrounding();
+        ApplyHorizontalDrag();
+        DrawGroundDebug();
+    }
 
-        RaycastHit hit;
+    protected virtual void UpdateGrounding()
+    {
+        Vector3 worldCenter = GetWorldCenter();
 
-        float checkDistance =
-            GetGroundCheckDistance() + groundCheckLength;
-
-        float sphereRadius =
-            capsuleRadius * groundCheckRadiusMultiplier;
-
-        Vector3 sphereOrigin =
-            worldCenter + Vector3.up * 0.05f;
+        float checkDistance = GetGroundCheckDistance() + groundCheckLength;
+        float sphereRadius = capsuleRadius * groundCheckRadiusMultiplier;
+        Vector3 sphereOrigin = worldCenter + Vector3.up * 0.05f;
 
         IsGrounded = Physics.SphereCast(
             sphereOrigin,
             sphereRadius,
             Vector3.down,
-            out hit,
+            out RaycastHit hit,
             checkDistance,
             groundLayers,
             QueryTriggerInteraction.Ignore
         );
+
         if (IsGrounded)
         {
             if (currentVelocity.y < 0f)
@@ -144,42 +163,28 @@ public class BasePhysics : MonoBehaviour
 
             if (!IsCrouchingForGrounding && hit.collider != null)
             {
-                float correction =
-                    groundCheckDistance - hit.distance;
-
+                float correction = groundCheckDistance - hit.distance;
                 if (correction > 0f)
                 {
-                    transform.position +=
-                        Vector3.up *
-                        Mathf.Min(correction, standingGroundSnapUp);
+                    transform.position += Vector3.up * Mathf.Min(correction, standingGroundSnapUp);
                 }
             }
         }
         else
         {
             float gravityValue = -9.81f * gravityScale;
-
-            currentVelocity.y +=
-                gravityValue * Time.deltaTime;
+            currentVelocity.y += gravityValue * Time.deltaTime;
 
             if (currentVelocity.y < -Mathf.Abs(terminalVelocity))
-            {
-                currentVelocity.y =
-                    -Mathf.Abs(terminalVelocity);
-            }
+                currentVelocity.y = -Mathf.Abs(terminalVelocity);
         }
+    }
 
-        float dragFactor =
-            Mathf.Clamp01(1f - linearDrag * Time.deltaTime);
-
+    protected virtual void ApplyHorizontalDrag()
+    {
+        float dragFactor = Mathf.Clamp01(1f - linearDrag * Time.deltaTime);
         currentVelocity.x *= dragFactor;
         currentVelocity.z *= dragFactor;
-
-        DrawGroundDebug(
-            sphereOrigin,
-            sphereRadius,
-            checkDistance
-        );
     }
 
     #region Movement / Collision
@@ -189,41 +194,23 @@ public class BasePhysics : MonoBehaviour
         if (delta.sqrMagnitude <= Mathf.Epsilon)
             return true;
 
-        Vector3 worldCenter =
-            transform.TransformPoint(capsuleCenter);
-
-        Vector3 bottom =
-            worldCenter +
-            Vector3.down *
-            (capsuleHeight * 0.5f - capsuleRadius);
-
-        Vector3 top =
-            worldCenter +
-            Vector3.up *
-            (capsuleHeight * 0.5f - capsuleRadius);
+        GetCapsulePoints(out Vector3 bottom, out Vector3 top);
 
         float distance = delta.magnitude;
-
-        RaycastHit hit;
 
         if (Physics.CapsuleCast(
             bottom,
             top,
             capsuleRadius,
             delta.normalized,
-            out hit,
+            out RaycastHit hit,
             distance + skinWidth,
             obstacleLayers,
             QueryTriggerInteraction.Ignore))
         {
-            float moveDist =
-                Mathf.Max(0f, hit.distance - skinWidth);
-
-            transform.position +=
-                delta.normalized * moveDist;
-
+            float moveDist = Mathf.Max(0f, hit.distance - skinWidth);
+            transform.position += delta.normalized * moveDist;
             OnSafeMoveBlocked(hit);
-
             return false;
         }
 
@@ -233,18 +220,7 @@ public class BasePhysics : MonoBehaviour
 
     public virtual void ResolveOverlap(float pushStrength = 0.5f)
     {
-        Vector3 worldCenter =
-            transform.TransformPoint(capsuleCenter);
-
-        Vector3 bottom =
-            worldCenter +
-            Vector3.down *
-            (capsuleHeight * 0.5f - capsuleRadius);
-
-        Vector3 top =
-            worldCenter +
-            Vector3.up *
-            (capsuleHeight * 0.5f - capsuleRadius);
+        GetCapsulePoints(out Vector3 bottom, out Vector3 top);
 
         Collider[] hits = Physics.OverlapCapsule(
             bottom,
@@ -254,32 +230,23 @@ public class BasePhysics : MonoBehaviour
             QueryTriggerInteraction.Ignore
         );
 
+        Vector3 worldCenter = GetWorldCenter();
+
         for (int i = 0; i < hits.Length; i++)
         {
             Collider other = hits[i];
-
             if (other == null)
                 continue;
 
-            Vector3 closest =
-                other.ClosestPoint(worldCenter);
-
-            Vector3 pushDir =
-                (worldCenter - closest);
+            Vector3 closest = other.ClosestPoint(worldCenter);
+            Vector3 pushDir = worldCenter - closest;
 
             if (pushDir.sqrMagnitude <= 0.0001f)
-            {
-                pushDir =
-                    (worldCenter - other.transform.position)
-                    .normalized;
-            }
+                pushDir = (worldCenter - other.transform.position).normalized;
             else
-            {
                 pushDir.Normalize();
-            }
 
-            transform.position +=
-                pushDir * pushStrength;
+            transform.position += pushDir * pushStrength;
         }
     }
 
@@ -292,8 +259,7 @@ public class BasePhysics : MonoBehaviour
         if (mass <= 0f)
             mass = 1f;
 
-        currentVelocity +=
-            (force / mass) * Time.deltaTime;
+        currentVelocity += (force / mass) * Time.deltaTime;
     }
 
     public virtual void ApplyImpulse(Vector3 impulse)
@@ -332,23 +298,14 @@ public class BasePhysics : MonoBehaviour
         float t = 0f;
 
         if (falloff == null)
-        {
-            falloff = AnimationCurve.EaseInOut(
-                0f,
-                1f,
-                1f,
-                0f
-            );
-        }
+            falloff = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
 
         while (t < duration)
         {
             float normalized = t / duration;
             float scale = falloff.Evaluate(normalized);
 
-            currentVelocity =
-                dir * (strength * scale);
-
+            currentVelocity = dir * (strength * scale);
             SafeMove(currentVelocity * Time.deltaTime);
 
             t += Time.deltaTime;
@@ -365,48 +322,31 @@ public class BasePhysics : MonoBehaviour
 
     #region Push Helpers
 
-    public virtual void PushAwayFromCollider(
-        Collider other,
-        float strength)
+    public virtual void PushAwayFromCollider(Collider other, float strength)
     {
         if (other == null)
             return;
 
-        Vector3 worldCenter =
-            transform.TransformPoint(capsuleCenter);
-
-        Vector3 closest =
-            other.ClosestPoint(worldCenter);
-
-        Vector3 dir =
-            (worldCenter - closest);
+        Vector3 worldCenter = GetWorldCenter();
+        Vector3 closest = other.ClosestPoint(worldCenter);
+        Vector3 dir = worldCenter - closest;
 
         if (dir.sqrMagnitude < 0.0001f)
-        {
-            dir =
-                (worldCenter - other.transform.position)
-                .normalized;
-        }
+            dir = (worldCenter - other.transform.position).normalized;
         else
-        {
             dir.Normalize();
-        }
 
         ApplyImpulse(dir * Mathf.Abs(strength));
     }
 
-    public virtual void PushAwayFromPoint(
-        Vector3 point,
-        float strength)
+    public virtual void PushAwayFromPoint(Vector3 point, float strength)
     {
-        Vector3 dir =
-            (transform.position - point);
+        Vector3 dir = transform.position - point;
 
         if (dir.sqrMagnitude <= 0.0001f)
             dir = Vector3.up;
 
         dir.Normalize();
-
         ApplyImpulse(dir * Mathf.Abs(strength));
     }
 
@@ -416,18 +356,7 @@ public class BasePhysics : MonoBehaviour
 
     public virtual bool IsOverlapping()
     {
-        Vector3 worldCenter =
-            transform.TransformPoint(capsuleCenter);
-
-        Vector3 bottom =
-            worldCenter +
-            Vector3.down *
-            (capsuleHeight * 0.5f - capsuleRadius);
-
-        Vector3 top =
-            worldCenter +
-            Vector3.up *
-            (capsuleHeight * 0.5f - capsuleRadius);
+        GetCapsulePoints(out Vector3 bottom, out Vector3 top);
 
         Collider[] hits = Physics.OverlapCapsule(
             bottom,
@@ -459,65 +388,50 @@ public class BasePhysics : MonoBehaviour
 
     #region Debug
 
-    private void DrawGroundDebug(
-        Vector3 origin,
-        float radius,
-        float distance)
+    private void DrawGroundDebug()
     {
-        Color debugColor =
-            IsGrounded ? Color.green : Color.red;
+        if (!drawDebugRays)
+            return;
 
-        Debug.DrawRay(
-            origin,
-            Vector3.down * distance,
+        Vector3 worldCenter = GetWorldCenter();
+
+        float checkDistance = GetGroundCheckDistance() + groundCheckLength;
+        float sphereRadius = capsuleRadius * groundCheckRadiusMultiplier;
+        Vector3 sphereOrigin = worldCenter + Vector3.up * 0.05f;
+
+        Color debugColor = IsGrounded ? groundedDebugColor : airborneDebugColor;
+
+        Debug.DrawRay(sphereOrigin, Vector3.down * checkDistance, debugColor);
+        Debug.DrawLine(
+            sphereOrigin + Vector3.right * sphereRadius,
+            sphereOrigin + Vector3.right * sphereRadius + Vector3.down * checkDistance,
             debugColor
         );
 
         Debug.DrawLine(
-            origin + Vector3.right * radius,
-            origin + Vector3.right * radius +
-            Vector3.down * distance,
-            debugColor
-        );
-
-        Debug.DrawLine(
-            origin - Vector3.right * radius,
-            origin - Vector3.right * radius +
-            Vector3.down * distance,
+            sphereOrigin - Vector3.right * sphereRadius,
+            sphereOrigin - Vector3.right * sphereRadius + Vector3.down * checkDistance,
             debugColor
         );
     }
+
     private void OnDrawGizmosSelected()
     {
+        if (!drawDebugRays)
+            return;
+
         Vector3 worldCenter = transform.TransformPoint(capsuleCenter);
 
-        float checkDistance =
-            GetGroundCheckDistance() + groundCheckLength;
+        float checkDistance = GetGroundCheckDistance() + groundCheckLength;
+        float sphereRadius = capsuleRadius * groundCheckRadiusMultiplier;
+        Vector3 sphereOrigin = worldCenter + Vector3.up * 0.05f;
+        Vector3 sphereEnd = sphereOrigin + Vector3.down * checkDistance;
 
-        float sphereRadius =
-            capsuleRadius * groundCheckRadiusMultiplier;
+        Gizmos.color = IsGrounded ? groundedDebugColor : airborneDebugColor;
 
-        Vector3 sphereOrigin =
-            worldCenter + Vector3.up * 0.05f;
+        Gizmos.DrawWireSphere(sphereOrigin, sphereRadius);
+        Gizmos.DrawWireSphere(sphereEnd, sphereRadius);
 
-        Vector3 sphereEnd =
-            sphereOrigin + Vector3.down * checkDistance;
-
-        Gizmos.color = IsGrounded ? Color.green : Color.red;
-
-        // Start sphere
-        Gizmos.DrawWireSphere(
-            sphereOrigin,
-            sphereRadius
-        );
-
-        // End sphere
-        Gizmos.DrawWireSphere(
-            sphereEnd,
-            sphereRadius
-        );
-
-        // Connecting lines
         Gizmos.DrawLine(
             sphereOrigin + Vector3.right * sphereRadius,
             sphereEnd + Vector3.right * sphereRadius
@@ -538,5 +452,6 @@ public class BasePhysics : MonoBehaviour
             sphereEnd - Vector3.forward * sphereRadius
         );
     }
+
     #endregion
 }

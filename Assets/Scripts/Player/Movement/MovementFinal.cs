@@ -7,6 +7,12 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform playerVisual;
 
+    [Header("Input")]
+    [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
+    [SerializeField] private KeyCode jumpKey = KeyCode.Space;
+    [SerializeField] private KeyCode traversalKey = KeyCode.Space;
+    [SerializeField] private KeyCode crouchKey = KeyCode.LeftControl;
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float sprintSpeed = 12f;
@@ -18,9 +24,14 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float sprintStaminaDrain = 1f;
 
     [Header("Crouch")]
-    [SerializeField] private KeyCode crouchKey = KeyCode.LeftControl;
     [SerializeField] private float crouchHeight = 0.5f;
     [SerializeField] private float crouchTransitionSpeed = 8f;
+
+    [Header("Forced Crouch")]
+    [SerializeField] private bool enableForcedCrouch = true;
+    [SerializeField] private LayerMask crouchBlockLayer;
+    [SerializeField] private float standingHeightCheck = 2f;
+    [SerializeField] private float crouchCheckRadius = 0.3f;
 
     [Header("Jump")]
     [SerializeField] private float jumpForce = 8f;
@@ -35,7 +46,18 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float climbSpeed = 4f;
     [SerializeField] private float climbStaminaDrain = 1f;
 
+    [Header("Mantle")]
+    [SerializeField] private bool enableMantle = true;
+    [SerializeField] private float mantleMinHeight = 0.6f;
+    [SerializeField] private float mantleMaxHeight = 1.35f;
+    [SerializeField] private float mantleForwardCheck = 0.7f;
+    [SerializeField] private float mantleTopSearchDistance = 1.8f;
+    [SerializeField] private float mantleForwardOffset = 0.5f;
+    [SerializeField] private float mantleClimbDuration = 0.2f;
+
     [Header("Ledge Grab")]
+    [SerializeField] private float ledgeMinHeight = 1.25f;
+    [SerializeField] private float ledgeMaxHeight = 2.4f;
     [SerializeField] private float topSurfaceCheckDistance = 3f;
     [SerializeField] private float ledgeForwardOffset = 0.5f;
     [SerializeField] private float hangOffsetDown = 1.2f;
@@ -43,31 +65,48 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float ledgeClimbDuration = 0.25f;
     [SerializeField] private float ledgeStandUpOffset = 1.05f;
     [SerializeField] private float ledgeClimbForwardOffset = 0.15f;
-
-    [Header("Ledge Stamina")]
     [SerializeField] private float ledgeHangDrain = 0.75f;
 
-    private Vector3 originalVisualScale;
-    private bool isCrouching;
-    private bool isSprinting;
-    private bool allowedToMove = true;
+    [Header("Surface Rules")]
+    [SerializeField, Range(0f, 1f)] private float surfaceUpDotThreshold = 0.7f;
 
-    private PlayerStamina stamina;
-    private Coroutine ledgeRoutine;
+    [Header("Debug Rays")]
+    [SerializeField] private bool drawDebugRaysTraversal = true;
+    [SerializeField] private float debugRayDurationTraversal = 0.08f;
+    [SerializeField] private Color lowerWallRayColor = Color.cyan;
+    [SerializeField] private Color upperWallRayColor = Color.yellow;
+    [SerializeField] private Color ledgeSearchRayColor = Color.blue;
+    [SerializeField] private Color ledgeHangTargetColor = Color.green;
+    [SerializeField] private Color ledgeClimbTargetColor = new Color(1f, 0.4f, 0f);
+    [SerializeField] private Color ledgeNormalColor = Color.magenta;
+    [SerializeField] private Color crouchCheckColor = Color.red;
+    [SerializeField] private Color mantleCheckColor = Color.white;
+    [SerializeField] private Color mantleTargetColor = Color.cyan;
 
     private enum MovementState
     {
         Normal,
         Climbing,
         LedgeGrab,
-        ClimbUp
+        ClimbUp,
+        Mantling
     }
 
     private MovementState state = MovementState.Normal;
 
+    private Vector3 originalVisualScale;
     private Vector3 inputDirection;
     private Vector3 wallNormal;
     private Vector3 ledgeTargetPosition;
+
+    private bool isCrouching;
+    private bool isSprinting;
+    private bool forcedCrouch;
+    private bool allowedToMove = true;
+
+    private PlayerStamina stamina;
+    private Coroutine ledgeRoutine;
+    private Coroutine mantleRoutine;
 
     public bool IsSprinting => isSprinting;
 
@@ -76,6 +115,8 @@ public class PlayerMovement : BasePhysics
         get => isCrouching;
         set => isCrouching = value;
     }
+
+    public bool IsForcedCrouching => forcedCrouch;
 
     public float CurrentHorizontalSpeed =>
         new Vector3(currentVelocity.x, 0f, currentVelocity.z).magnitude;
@@ -96,6 +137,12 @@ public class PlayerMovement : BasePhysics
     {
         NotePad.StopMovement += StopMovement;
         NotePad.ContinueMovement += ContinueMovement;
+    }
+
+    private void OnDisable()
+    {
+        NotePad.StopMovement -= StopMovement;
+        NotePad.ContinueMovement -= ContinueMovement;
     }
 
     private void OnDestroy()
@@ -129,12 +176,18 @@ public class PlayerMovement : BasePhysics
         if (stamina == null)
             stamina = PlayerStamina.Instance;
 
+        if (!allowedToMove)
+        {
+            StopMotionImmediately();
+            return;
+        }
+
         switch (state)
         {
             case MovementState.Normal:
                 HandleMovement();
                 HandleJump();
-                HandleWallCheck();
+                HandleTraversal();
                 break;
 
             case MovementState.Climbing:
@@ -146,15 +199,45 @@ public class PlayerMovement : BasePhysics
                 break;
 
             case MovementState.ClimbUp:
+            case MovementState.Mantling:
                 currentVelocity = Vector3.zero;
                 break;
         }
 
-        Vector3 moveDelta = currentVelocity * Time.deltaTime;
-        SafeMove(moveDelta);
+        SafeMove(currentVelocity * Time.deltaTime);
+    }
 
-        if (!allowedToMove)
-            StoppingMovenent();
+    private void DrawRay(Vector3 origin, Vector3 direction, Color color)
+    {
+        if (!drawDebugRaysTraversal)
+            return;
+
+        Debug.DrawRay(origin, direction, color, debugRayDurationTraversal);
+    }
+
+    private void DrawLine(Vector3 start, Vector3 end, Color color)
+    {
+        if (!drawDebugRaysTraversal)
+            return;
+
+        Debug.DrawLine(start, end, color, debugRayDurationTraversal);
+    }
+
+    private Vector3 GetFlatForward()
+    {
+        Vector3 forward = orientation != null ? orientation.forward : transform.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude < 0.0001f)
+            forward = transform.forward;
+
+        forward.Normalize();
+        return forward;
+    }
+
+    private bool IsWithinHeightRange(float height, float min, float max)
+    {
+        return height >= Mathf.Min(min, max) && height <= Mathf.Max(min, max);
     }
 
     private void HandleInput()
@@ -162,7 +245,7 @@ public class PlayerMovement : BasePhysics
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
-        isSprinting = Input.GetKey(KeyCode.LeftShift);
+        isSprinting = Input.GetKey(sprintKey);
 
         if (orientation == null)
         {
@@ -184,7 +267,51 @@ public class PlayerMovement : BasePhysics
 
     private void HandleCrouch()
     {
-        IsCrouching = Input.GetKey(crouchKey);
+        bool manualCrouch = Input.GetKey(crouchKey);
+        forcedCrouch = false;
+
+        if (enableForcedCrouch)
+        {
+            Vector3 checkOrigin = transform.position + Vector3.up * crouchHeight;
+            float checkDistance = Mathf.Max(0f, standingHeightCheck - crouchHeight);
+
+            bool blocked = Physics.SphereCast(
+                checkOrigin,
+                crouchCheckRadius,
+                Vector3.up,
+                out RaycastHit hit,
+                checkDistance,
+                crouchBlockLayer,
+                QueryTriggerInteraction.Ignore
+            );
+
+            if (drawDebugRaysTraversal)
+            {
+                Color rayColor = blocked ? Color.red : Color.green;
+                DrawRay(checkOrigin, Vector3.up * checkDistance, rayColor);
+
+                Debug.DrawLine(
+                    checkOrigin + Vector3.right * crouchCheckRadius,
+                    checkOrigin + Vector3.right * crouchCheckRadius + Vector3.up * checkDistance,
+                    crouchCheckColor,
+                    debugRayDurationTraversal
+                );
+
+                Debug.DrawLine(
+                    checkOrigin - Vector3.right * crouchCheckRadius,
+                    checkOrigin - Vector3.right * crouchCheckRadius + Vector3.up * checkDistance,
+                    crouchCheckColor,
+                    debugRayDurationTraversal
+                );
+
+                if (blocked)
+                    DrawLine(hit.point, hit.point + hit.normal * 0.5f, crouchCheckColor);
+            }
+
+            forcedCrouch = blocked;
+        }
+
+        IsCrouching = manualCrouch || forcedCrouch;
 
         Vector3 targetScale = originalVisualScale;
         if (IsCrouching)
@@ -235,17 +362,11 @@ public class PlayerMovement : BasePhysics
 
     private void HandleJump()
     {
-        if (!allowedToMove)
-            return;
-
-        if (IsCrouching)
-            return;
-
-        if (stamina == null)
+        if (!allowedToMove || IsCrouching || stamina == null)
             return;
 
         if (IsGrounded &&
-            Input.GetKeyDown(KeyCode.Space) &&
+            Input.GetKeyDown(jumpKey) &&
             stamina.stamina >= jumpStaminaCost)
         {
             stamina.ConsumeStamina(jumpStaminaCost);
@@ -254,52 +375,43 @@ public class PlayerMovement : BasePhysics
         }
     }
 
-    private void HandleWallCheck()
+    private void HandleTraversal()
     {
-        if (!allowedToMove)
+        if (!Input.GetKey(traversalKey))
             return;
 
-        if (!Input.GetKey(KeyCode.Space))
+        if (IsGrounded || IsCrouching || stamina == null || stamina.stamina <= 0f)
             return;
 
-        if (IsGrounded || IsCrouching)
-            return;
+        Vector3 forward = GetFlatForward();
 
-        if (stamina == null || stamina.stamina <= 0f)
-            return;
+        Vector3 lowerRayOrigin = transform.position + Vector3.up * chestHeight;
+        Vector3 upperRayOrigin = transform.position + Vector3.up * topRayHeight;
 
-        Vector3 forward =
-            orientation != null
-            ? orientation.forward
-            : transform.forward;
-
-        forward.y = 0f;
-        forward.Normalize();
-
-        Vector3 lowerRayOrigin =
-            transform.position + Vector3.up * chestHeight;
-
-        Vector3 upperRayOrigin =
-            transform.position + Vector3.up * topRayHeight;
+        DrawRay(lowerRayOrigin, forward * wallDetectDistance, lowerWallRayColor);
+        DrawRay(upperRayOrigin, forward * wallDetectDistance, upperWallRayColor);
 
         bool lowerHit = Physics.Raycast(
             lowerRayOrigin,
             forward,
             out RaycastHit wallHit,
             wallDetectDistance,
-            climbLayer
+            climbLayer,
+            QueryTriggerInteraction.Ignore
         );
 
         if (!lowerHit)
             return;
 
         wallNormal = wallHit.normal;
+        DrawLine(wallHit.point, wallHit.point + wallHit.normal, ledgeNormalColor);
 
         bool upperHit = Physics.Raycast(
             upperRayOrigin,
             forward,
             wallDetectDistance,
-            climbLayer
+            climbLayer,
+            QueryTriggerInteraction.Ignore
         );
 
         if (enableWallClimb && upperHit)
@@ -308,13 +420,40 @@ public class PlayerMovement : BasePhysics
             return;
         }
 
-        if (!upperHit)
-        {
-            bool grabbed = TryLedgeGrab(wallHit);
+        if (upperHit)
+            return;
 
-            if (!grabbed)
-                return;
+        if (!TryGetTopSurface(upperRayOrigin, forward, out RaycastHit topHit))
+            return;
+
+        float surfaceHeight = topHit.point.y - transform.position.y;
+
+        if (enableMantle && IsWithinHeightRange(surfaceHeight, mantleMinHeight, mantleMaxHeight))
+        {
+            TryStartMantle(topHit.point, wallHit.normal, forward);
+            return;
         }
+
+        if (IsWithinHeightRange(surfaceHeight, ledgeMinHeight, ledgeMaxHeight))
+        {
+            TryStartLedgeGrab(topHit.point, wallHit.normal, topHit.normal);
+        }
+    }
+
+    private bool TryGetTopSurface(Vector3 upperRayOrigin, Vector3 forward, out RaycastHit topHit)
+    {
+        Vector3 searchOrigin = upperRayOrigin + forward * ledgeForwardOffset;
+
+        DrawRay(searchOrigin, Vector3.down * topSurfaceCheckDistance, ledgeSearchRayColor);
+
+        return Physics.Raycast(
+                   searchOrigin,
+                   Vector3.down,
+                   out topHit,
+                   topSurfaceCheckDistance,
+                   climbLayer,
+                   QueryTriggerInteraction.Ignore
+               ) && Vector3.Dot(topHit.normal, Vector3.up) >= surfaceUpDotThreshold;
     }
 
     private void StartClimbing()
@@ -338,7 +477,7 @@ public class PlayerMovement : BasePhysics
             return;
         }
 
-        if (!Input.GetKey(KeyCode.Space))
+        if (!Input.GetKey(traversalKey))
         {
             StopClimbing();
             return;
@@ -350,19 +489,21 @@ public class PlayerMovement : BasePhysics
             return;
         }
 
-        Vector3 forward = orientation != null ? orientation.forward : transform.forward;
-        forward.y = 0f;
-        forward.Normalize();
+        Vector3 forward = GetFlatForward();
 
         Vector3 lowerRayOrigin = transform.position + Vector3.up * chestHeight;
         Vector3 upperRayOrigin = transform.position + Vector3.up * topRayHeight;
+
+        DrawRay(lowerRayOrigin, forward * wallDetectDistance, lowerWallRayColor);
+        DrawRay(upperRayOrigin, forward * wallDetectDistance, upperWallRayColor);
 
         bool lowerHit = Physics.Raycast(
             lowerRayOrigin,
             forward,
             out RaycastHit wallHit,
             wallDetectDistance,
-            climbLayer
+            climbLayer,
+            QueryTriggerInteraction.Ignore
         );
 
         if (!lowerHit)
@@ -378,16 +519,18 @@ public class PlayerMovement : BasePhysics
         currentVelocity.y = climbSpeed;
 
         wallNormal = wallHit.normal;
+        DrawLine(wallHit.point, wallHit.point + wallHit.normal, ledgeNormalColor);
 
         bool upperHit = Physics.Raycast(
             upperRayOrigin,
             forward,
             wallDetectDistance,
-            climbLayer
+            climbLayer,
+            QueryTriggerInteraction.Ignore
         );
 
         if (!upperHit)
-            TryLedgeGrab(wallHit);
+            TryGetTopSurface(upperRayOrigin, forward, out _);
 
         if (inputDirection.sqrMagnitude > 0.1f)
         {
@@ -401,41 +544,60 @@ public class PlayerMovement : BasePhysics
         }
     }
 
-    private bool TryLedgeGrab(RaycastHit wallHit)
+    private void TryStartMantle(Vector3 topPoint, Vector3 hitNormal, Vector3 forward)
     {
-        Vector3 searchOrigin =
-            wallHit.point +
-            Vector3.up * topRayHeight +
-            wallHit.normal * ledgeForwardOffset;
+        if (!enableMantle || mantleRoutine != null)
+            return;
 
-        Debug.DrawRay(
-            searchOrigin,
-            Vector3.down * topSurfaceCheckDistance,
-            Color.blue
-        );
-
-        bool foundTop = Physics.Raycast(
-            searchOrigin,
-            Vector3.down,
-            out RaycastHit topHit,
-            topSurfaceCheckDistance,
-            climbLayer
-        );
-
-        if (!foundTop)
-            return false;
-      
-        if (Vector3.Dot(topHit.normal, Vector3.up) < 0.7f)
-            return false;
-
-        EnterLedgeGrab(topHit.point, wallHit.normal);
-
-        return true;
+        mantleRoutine = StartCoroutine(MantleRoutine(topPoint, hitNormal, forward));
     }
 
-    private void EnterLedgeGrab(Vector3 ledgePoint, Vector3 wallNormal)
+    private IEnumerator MantleRoutine(Vector3 topPoint, Vector3 hitNormal, Vector3 forward)
     {
-        if (state == MovementState.LedgeGrab || state == MovementState.ClimbUp)
+        state = MovementState.Mantling;
+        currentVelocity = Vector3.zero;
+
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+
+        Vector3 faceDir = new Vector3(-hitNormal.x, 0f, -hitNormal.z);
+        Quaternion targetRot = faceDir.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(faceDir.normalized, Vector3.up)
+            : transform.rotation;
+
+        Vector3 targetPos =
+            topPoint +
+            Vector3.up * 0.05f +
+            forward * mantleForwardOffset;
+
+        DrawLine(startPos, targetPos, mantleTargetColor);
+
+        float timer = 0f;
+
+        while (timer < mantleClimbDuration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, timer / mantleClimbDuration);
+
+            transform.position = Vector3.Lerp(startPos, targetPos, t);
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+
+            yield return null;
+        }
+
+        transform.position = targetPos;
+        transform.rotation = targetRot;
+
+        state = MovementState.Normal;
+        mantleRoutine = null;
+    }
+
+    private void TryStartLedgeGrab(Vector3 ledgePoint, Vector3 wallNormal, Vector3 topNormal)
+    {
+        if (ledgeRoutine != null || state != MovementState.Normal)
+            return;
+
+        if (Vector3.Dot(topNormal, Vector3.up) < surfaceUpDotThreshold)
             return;
 
         state = MovementState.LedgeGrab;
@@ -458,6 +620,8 @@ public class PlayerMovement : BasePhysics
             ledgePoint +
             wallNormal * ledgeClimbForwardOffset +
             Vector3.up * ledgeStandUpOffset;
+
+        DrawLine(transform.position, ledgeTargetPosition, ledgeHangTargetColor);
     }
 
     private void HandleLedgeGrab()
@@ -475,7 +639,7 @@ public class PlayerMovement : BasePhysics
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) && ledgeRoutine == null)
+        if (Input.GetKeyDown(traversalKey) && ledgeRoutine == null)
         {
             ledgeRoutine = StartCoroutine(ClimbUpLedge());
             return;
@@ -489,6 +653,7 @@ public class PlayerMovement : BasePhysics
     {
         state = MovementState.Normal;
         currentVelocity = Vector3.zero;
+        ledgeRoutine = null;
     }
 
     private IEnumerator ClimbUpLedge()
@@ -502,6 +667,8 @@ public class PlayerMovement : BasePhysics
         Quaternion targetRot = faceDir.sqrMagnitude > 0.0001f
             ? Quaternion.LookRotation(faceDir.normalized, Vector3.up)
             : transform.rotation;
+
+        DrawLine(startPos, ledgeTargetPosition, ledgeClimbTargetColor);
 
         float timer = 0f;
 
@@ -534,9 +701,29 @@ public class PlayerMovement : BasePhysics
         acceleration = 20f;
     }
 
-    private void StoppingMovenent()
+    private void StopMotionImmediately()
     {
         currentVelocity = Vector3.zero;
         acceleration = 0f;
+
+        if (ledgeRoutine != null)
+        {
+            StopCoroutine(ledgeRoutine);
+            ledgeRoutine = null;
+        }
+
+        if (mantleRoutine != null)
+        {
+            StopCoroutine(mantleRoutine);
+            mantleRoutine = null;
+        }
+
+        if (state == MovementState.Climbing ||
+            state == MovementState.LedgeGrab ||
+            state == MovementState.ClimbUp ||
+            state == MovementState.Mantling)
+        {
+            state = MovementState.Normal;
+        }
     }
 }
