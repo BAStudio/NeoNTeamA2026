@@ -1,98 +1,156 @@
-using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
-
 public class Keypad : MonoBehaviour
 {
+    [Header("Buttons")]
     [SerializeField] private List<GameObject> buttons;
     [SerializeField] private GameObject enter;
     [SerializeField] private GameObject clear;
 
+    [Header("Display")]
     [SerializeField] private TextMeshPro textMesh;
-    public string correctCode = "1234";
 
-    [SerializeField] private UnityEvent OpenDoor;
+    [Header("Interaction")]
+    [SerializeField] private Transform interactionOrigin;
+    [SerializeField] private float interactDistance = 3f;
+    [SerializeField] private LayerMask keypadLayer;
+    [SerializeField] private UnityEvent OnCorrectCode;
+
+    private string correctCode = "";
+    private string currentInput = "";
 
     private int maxInputLength;
-    private string currentInput = "";
 
     private bool inUse = true;
     private bool correctCodeEntered = false;
 
-
     private void Start()
     {
-        maxInputLength = correctCode.Length;
-        ShuffelKeys();
+        ShuffleKeys();
+        UpdateDisplay();
     }
 
-    private void ShuffelKeys()
+    private void Update()
     {
-        buttons = buttons.OrderBy(x => UnityEngine.Random.value).ToList();
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            buttons[i].GetComponentInChildren<TextMeshPro>().text = i.ToString();
-        }
-    }
+        if (!inUse || correctCodeEntered)
+            return;
 
-    void Update()
-    {
-        if (!inUse || correctCodeEntered) return;
-        if (Input.GetMouseButtonDown(0))
+        if (!Input.GetMouseButtonDown(0))
+            return;
+
+        Ray ray = new Ray(
+            interactionOrigin.position,
+            interactionOrigin.forward
+        );
+
+        Debug.DrawRay(
+            ray.origin,
+            ray.direction * interactDistance,
+            Color.white
+        );
+
+        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, keypadLayer))
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            Debug.DrawRay(ray.origin, ray.direction * 20, Color.white);
-            if (Physics.Raycast(ray, out hit))
+            GameObject hitObject = hit.collider.gameObject;
+
+            if (IsButton(hitObject, enter))
             {
-                GameObject hitObject = hit.transform.gameObject;
+                PressButton(enter);
+                CheckCode();
+            }
+            else if (IsButton(hitObject, clear))
+            {
+                PressButton(clear);
 
-                if (hitObject == enter)
+                currentInput = "";
+                UpdateDisplay();
+            }
+            else
+            {
+                GameObject matchedButton = buttons.FirstOrDefault(button =>
+                    IsButton(hitObject, button));
+
+                if (matchedButton != null)
                 {
-                    hitObject.GetComponent<Animator>().SetTrigger("press");
-                    if (currentInput == correctCode)
+                    PressButton(matchedButton);
+
+                    if (currentInput.Length < maxInputLength)
                     {
-                        Debug.Log("CorrectCode");
-                        correctCodeEntered = true;
-                        textMesh.color = Color.green;
-                    }
-                    else
-                    {
-                        currentInput = "";
-                        Debug.Log("IncorrectCode");
-                        ShuffelKeys();
+                        string value =
+                            matchedButton
+                            .GetComponentInChildren<TextMeshPro>()
+                            .text;
+
+                        currentInput += value;
+
                         UpdateDisplay();
                     }
                 }
-                else if (hitObject == clear)
-                {
-                    hitObject.GetComponent<Animator>().SetTrigger("press");
-                    currentInput = "";
-                    UpdateDisplay();
-                }
-                else
-                {
-                    int buttonIndex = buttons.IndexOf(hitObject);
-                    if (buttonIndex != -1)
-                    {
-                        hitObject.GetComponent<Animator>().SetTrigger("press");
-                        if (currentInput.Length < maxInputLength)
-                        {
-                            currentInput += buttonIndex.ToString();
-                            UpdateDisplay();
-                        }
-                    }
-                }
+            }
+        }
+    }
+
+    private bool IsButton(GameObject hitObject, GameObject button)
+    {
+        return hitObject == button ||
+               hitObject.transform.IsChildOf(button.transform);
+    }
+
+    private void PressButton(GameObject button)
+    {
+        Animator animator = button.GetComponentInParent<Animator>();
+
+        if (animator != null)
+        {
+            animator.SetTrigger("press");
+        }
+    }
+
+    private void CheckCode()
+    {
+        if (currentInput == correctCode)
+        {
+            Debug.Log("Correct Code");
+
+            correctCodeEntered = true;
+
+            if (textMesh != null)
+            {
+                textMesh.color = Color.green;
             }
 
-            if (correctCodeEntered)
+            OnCorrectCode?.Invoke();
+        }
+        else
+        {
+            Debug.Log("Incorrect Code");
+
+            currentInput = "";
+
+            ShuffleKeys();
+
+            UpdateDisplay();
+        }
+    }
+
+    private void ShuffleKeys()
+    {
+        buttons = buttons
+            .OrderBy(x => Random.value)
+            .ToList();
+
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            TextMeshPro label =
+                buttons[i].GetComponentInChildren<TextMeshPro>();
+
+            if (label != null)
             {
-                OpenDoor?.Invoke();
+                label.text = i.ToString();
             }
         }
     }
@@ -105,8 +163,33 @@ public class Keypad : MonoBehaviour
         }
     }
 
-    public void UseKeypad()
+    public void SetCode(string newCode)
     {
-        inUse = true;
+        correctCode = newCode;
+        maxInputLength = correctCode.Length;
+    }
+
+    public bool IsCorrect()
+    {
+        return correctCodeEntered;
+    }
+
+    public void ResetKeypad()
+    {
+        currentInput = "";
+        correctCodeEntered = false;
+
+        if (textMesh != null)
+        {
+            textMesh.color = Color.white;
+        }
+
+        ShuffleKeys();
+        UpdateDisplay();
+    }
+
+    public void UseKeypad(bool state)
+    {
+        inUse = state;
     }
 }
