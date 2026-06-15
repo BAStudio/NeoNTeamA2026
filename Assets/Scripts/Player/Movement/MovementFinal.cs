@@ -13,6 +13,14 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private KeyCode traversalKey = KeyCode.Space;
     [SerializeField] private KeyCode crouchKey = KeyCode.LeftControl;
 
+    [Header("Movement Toggles")]
+    [SerializeField] private bool enableSprint = true;
+    [SerializeField] private bool enableJump = true;
+    [SerializeField] private bool enableCrouch = true;
+    [SerializeField] private bool enableWallClimb = true;
+    [SerializeField] private bool enableMantle = true;
+    [SerializeField] private bool enableLedgeGrab = true;   
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float sprintSpeed = 12f;
@@ -38,7 +46,6 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float jumpStaminaCost = 1f;
 
     [Header("Wall Climb")]
-    [SerializeField] private bool enableWallClimb = true;
     [SerializeField] private LayerMask climbLayer;
     [SerializeField] private float wallDetectDistance = 1f;
     [SerializeField] private float chestHeight = 1f;
@@ -47,11 +54,10 @@ public class PlayerMovement : BasePhysics
     [SerializeField] private float climbStaminaDrain = 1f;
 
     [Header("Mantle")]
-    [SerializeField] private bool enableMantle = true;
     [SerializeField] private float mantleMinHeight = 0.6f;
     [SerializeField] private float mantleMaxHeight = 1.35f;
-    [SerializeField] private float mantleForwardCheck = 0.7f;
-    [SerializeField] private float mantleTopSearchDistance = 1.8f;
+    [SerializeField] private float mantleForwardCheck = 0.7f;       // FIX: now actually used
+    [SerializeField] private float mantleTopSearchDistance = 1.8f;  // FIX: now actually used
     [SerializeField] private float mantleForwardOffset = 0.5f;
     [SerializeField] private float mantleClimbDuration = 0.2f;
 
@@ -267,6 +273,19 @@ public class PlayerMovement : BasePhysics
 
     private void HandleCrouch()
     {
+        // FIX: respect enableCrouch toggle; uncrouched scale is restored when disabled
+        if (!enableCrouch)
+        {
+            forcedCrouch = false;
+            IsCrouching = false;
+            playerVisual.localScale = Vector3.Lerp(
+                playerVisual.localScale,
+                originalVisualScale,
+                crouchTransitionSpeed * Time.deltaTime
+            );
+            return;
+        }
+
         bool manualCrouch = Input.GetKey(crouchKey);
         forcedCrouch = false;
 
@@ -329,7 +348,9 @@ public class PlayerMovement : BasePhysics
         float control = IsGrounded ? 1f : airControl;
         float effectiveCrouchSpeed = Mathf.Min(crouchSpeed, moveSpeed);
 
+        // FIX: respect enableSprint toggle
         bool canSprint =
+            enableSprint &&
             isSprinting &&
             !IsCrouching &&
             IsGrounded &&
@@ -362,7 +383,8 @@ public class PlayerMovement : BasePhysics
 
     private void HandleJump()
     {
-        if (!allowedToMove || IsCrouching || stamina == null)
+        // FIX: respect enableJump toggle
+        if (!allowedToMove || !enableJump || IsCrouching || stamina == null)
             return;
 
         if (IsGrounded &&
@@ -423,34 +445,58 @@ public class PlayerMovement : BasePhysics
         if (upperHit)
             return;
 
-        if (!TryGetTopSurface(upperRayOrigin, forward, out RaycastHit topHit))
-            return;
+        // FIX: mantle and ledge grab now each use their own forward-offset and
+        // search-distance parameters instead of both sharing ledgeForwardOffset /
+        // topSurfaceCheckDistance. mantleForwardCheck and mantleTopSearchDistance
+        // were declared but previously ignored entirely.
 
-        float surfaceHeight = topHit.point.y - transform.position.y;
-
-        if (enableMantle && IsWithinHeightRange(surfaceHeight, mantleMinHeight, mantleMaxHeight))
+        if (enableMantle &&
+            TryGetTopSurface(upperRayOrigin, forward, mantleForwardCheck,
+                             mantleTopSearchDistance, out RaycastHit mantleHit))
         {
-            TryStartMantle(topHit.point, wallHit.normal, forward);
-            return;
+            float surfaceHeight = mantleHit.point.y - transform.position.y;
+            if (IsWithinHeightRange(surfaceHeight, mantleMinHeight, mantleMaxHeight))
+            {
+                TryStartMantle(mantleHit.point, wallHit.normal, forward);
+                return;
+            }
         }
 
-        if (IsWithinHeightRange(surfaceHeight, ledgeMinHeight, ledgeMaxHeight))
+        // FIX: guard enableLedgeGrab (was missing) and do a fresh surface search
+        // with the ledge-specific parameters
+        if (enableLedgeGrab &&
+            TryGetTopSurface(upperRayOrigin, forward, ledgeForwardOffset,
+                             topSurfaceCheckDistance, out RaycastHit ledgeHit))
         {
-            TryStartLedgeGrab(topHit.point, wallHit.normal, topHit.normal);
+            float surfaceHeight = ledgeHit.point.y - transform.position.y;
+            if (IsWithinHeightRange(surfaceHeight, ledgeMinHeight, ledgeMaxHeight))
+            {
+                // FIX: stamina guard before grabbing so a 0-stamina player does
+                // not teleport to the hang position then immediately drop
+                if (stamina.stamina > 0f)
+                    TryStartLedgeGrab(ledgeHit.point, wallHit.normal, ledgeHit.normal);
+            }
         }
     }
 
-    private bool TryGetTopSurface(Vector3 upperRayOrigin, Vector3 forward, out RaycastHit topHit)
+    // FIX: now accepts explicit forwardOffset and searchDistance so mantle and
+    // ledge grab each receive their own tuned values instead of sharing one set
+    private bool TryGetTopSurface(
+        Vector3 upperRayOrigin,
+        Vector3 forward,
+        float forwardOffset,
+        float searchDistance,
+        out RaycastHit topHit)
     {
-        Vector3 searchOrigin = upperRayOrigin + forward * ledgeForwardOffset;
+        Vector3 searchOrigin = upperRayOrigin + forward * forwardOffset;
 
-        DrawRay(searchOrigin, Vector3.down * topSurfaceCheckDistance, ledgeSearchRayColor);
+        DrawRay(searchOrigin, Vector3.down * searchDistance, ledgeSearchRayColor);
 
         return Physics.Raycast(
                    searchOrigin,
                    Vector3.down,
                    out topHit,
-                   topSurfaceCheckDistance,
+                   searchDistance,
                    climbLayer,
                    QueryTriggerInteraction.Ignore
                ) && Vector3.Dot(topHit.normal, Vector3.up) >= surfaceUpDotThreshold;
@@ -529,8 +575,10 @@ public class PlayerMovement : BasePhysics
             QueryTriggerInteraction.Ignore
         );
 
+        // Debug-only: visualise the ledge search ray while climbing
         if (!upperHit)
-            TryGetTopSurface(upperRayOrigin, forward, out _);
+            TryGetTopSurface(upperRayOrigin, forward, ledgeForwardOffset,
+                             topSurfaceCheckDistance, out _);
 
         if (inputDirection.sqrMagnitude > 0.1f)
         {
