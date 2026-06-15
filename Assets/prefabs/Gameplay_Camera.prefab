@@ -42,12 +42,12 @@ Light:
   m_GameObject: {fileID: 330694097030782846}
   m_Enabled: 1
   serializedVersion: 12
-  m_Type: 4
+  m_Type: 0
   m_Color: {r: 1, g: 0, b: 0, a: 1}
-  m_Intensity: 70.78
-  m_Range: 11.1
-  m_SpotAngle: 127.13874
-  m_InnerSpotAngle: 0
+  m_Intensity: 73.8
+  m_Range: 2.8
+  m_SpotAngle: 147.9225
+  m_InnerSpotAngle: 20.783743
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
     m_Type: 2
